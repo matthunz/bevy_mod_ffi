@@ -1,5 +1,5 @@
 use bevy_mod_ffi_example_core::{ExampleResource, Position, Velocity};
-use bevy_mod_ffi_guest::World;
+use bevy_mod_ffi_guest::{Query, SystemState, World};
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn guest_main(world_ptr: *mut ()) {
@@ -14,5 +14,11 @@ pub unsafe extern "C" fn guest_main(world_ptr: *mut ()) {
 
         vel.x *= 2.0;
         vel.y *= 2.0;
+    }
+
+    let mut state = SystemState::<Query<&Velocity>>::new(&mut world);
+    let mut query = state.get(&mut world);
+    for x in query.iter_mut() {
+        dbg!(x);
     }
 }

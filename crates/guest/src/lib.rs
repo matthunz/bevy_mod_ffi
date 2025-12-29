@@ -12,7 +12,10 @@ mod entity;
 pub use entity::FilteredEntityMut;
 
 pub mod query;
-pub use query::QueryBuilder;
+pub use query::{Query, QueryBuilder};
+
+pub mod system;
+pub use system::{SystemParam, SystemState};
 
 unsafe extern "C" {
     fn bevy_world_get_resource_id(

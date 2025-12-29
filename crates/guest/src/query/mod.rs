@@ -18,6 +18,8 @@ pub use state::QueryState;
 
 unsafe extern "C" {
     pub fn bevy_query_iter_mut(query: *mut (), out_iter: *mut *mut ()) -> bool;
+
+    pub fn bevy_query_drop(iter: *mut ());
 }
 
 pub struct Query<'w, 's, D: QueryData, F: QueryFilter = ()> {
@@ -27,6 +29,10 @@ pub struct Query<'w, 's, D: QueryData, F: QueryFilter = ()> {
 }
 
 impl<'w, 's, D: QueryData, F: QueryFilter> Query<'w, 's, D, F> {
+    pub(crate) fn new(ptr: *mut (), state: &'s mut QueryState<D, F>, world: &'w mut World) -> Self {
+        Self { state, ptr, world }
+    }
+
     pub fn iter_mut<'a>(&'a mut self) -> QueryIter<'a, 'a, D, F> {
         let mut iter_ptr: *mut () = ptr::null_mut();
 
@@ -36,5 +42,11 @@ impl<'w, 's, D: QueryData, F: QueryFilter> Query<'w, 's, D, F> {
         }
 
         QueryIter::new(iter_ptr, &mut self.state.state, self.world)
+    }
+}
+
+impl<D: QueryData, F: QueryFilter> Drop for Query<'_, '_, D, F> {
+    fn drop(&mut self) {
+        unsafe { bevy_query_drop(self.ptr) }
     }
 }
