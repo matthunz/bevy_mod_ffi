@@ -4,4 +4,14 @@ version = "0.1.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 
+[workspace]
+members = [
+  ".",
+  "crates/guest",
+  "crates/host",
+  "example/core",
+  "example/guest",
+  "example/host",
+]
+
 [dependencies]

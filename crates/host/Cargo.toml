@@ -1,0 +1,12 @@
+[package]
+name = "bevy_mod_ffi_host"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+bevy = { version = "0.17.3", default-features = false }
+bytemuck = { version = "1.21", features = ["derive"] }
