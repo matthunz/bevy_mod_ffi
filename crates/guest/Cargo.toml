@@ -3,10 +3,11 @@ name = "bevy_mod_ffi_guest"
 version = "0.1.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
+description = "FFI utilities for Bevy guests"
 
 [dependencies]
-bevy_mod_ffi_core = { path = "../core" }
-bevy_mod_ffi_guest_sys = { path = "../guest_sys" }
+bevy_mod_ffi_core = { path = "../core", version = "0.1.0" }
+bevy_mod_ffi_guest_sys = { path = "../guest_sys", version = "0.1.0" }
 bevy_ecs = "0.17.3"
 bevy_reflect = "0.17.3"
 bytemuck = { version = "1.21", features = ["derive"] }

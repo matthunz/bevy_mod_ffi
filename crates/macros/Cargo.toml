@@ -2,6 +2,8 @@
 name = "bevy_mod_ffi_macros"
 version = "0.1.0"
 edition = "2024"
+license = "MIT OR Apache-2.0"
+description = "Macros for bevy_mod_ffi"
 
 [lib]
 proc-macro = true
