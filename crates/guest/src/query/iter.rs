@@ -1,26 +1,18 @@
 use super::{QueryData, QueryFilter, QueryState};
 use crate::world::{FilteredEntityMut, World};
 use bevy_ecs::entity::Entity;
+use bevy_mod_ffi_core::{filtered_entity_mut, query_iter};
+use bevy_mod_ffi_guest_sys;
 use std::marker::PhantomData;
 
-unsafe extern "C" {
-    fn bevy_query_iter_next(
-        iter: *mut (),
-        out_entity_id: *mut u64,
-        out_entity: *mut *mut (),
-    ) -> bool;
-
-    fn bevy_query_iter_drop(iter: *mut ());
-}
-
 pub struct QueryIter<'w, 's, D: QueryData, F: QueryFilter> {
-    iter_ptr: *mut (),
+    iter_ptr: *mut query_iter,
     state: &'s mut D::State,
     _marker: PhantomData<(&'w mut World, &'s QueryState<D, F>)>,
 }
 
 impl<'w, 's, D: QueryData, F: QueryFilter> QueryIter<'w, 's, D, F> {
-    pub(crate) fn new(iter_ptr: *mut (), state: &'s mut D::State) -> Self {
+    pub(crate) fn new(iter_ptr: *mut query_iter, state: &'s mut D::State) -> Self {
         QueryIter {
             iter_ptr,
             state,
@@ -34,10 +26,15 @@ impl<'w, 's, D: QueryData, F: QueryFilter> Iterator for QueryIter<'w, 's, D, F> 
 
     fn next(&mut self) -> Option<Self::Item> {
         let mut entity_id: u64 = 0;
-        let mut entity_ptr: *mut () = std::ptr::null_mut();
+        let mut entity_ptr: *mut filtered_entity_mut = std::ptr::null_mut();
 
-        let success =
-            unsafe { bevy_query_iter_next(self.iter_ptr, &mut entity_id, &mut entity_ptr) };
+        let success = unsafe {
+            bevy_mod_ffi_guest_sys::query::iter::bevy_query_iter_next(
+                self.iter_ptr,
+                &mut entity_id,
+                &mut entity_ptr,
+            )
+        };
 
         if !success {
             return None;
@@ -57,7 +54,7 @@ impl<'w, 's, D: QueryData, F: QueryFilter> Iterator for QueryIter<'w, 's, D, F> 
 impl<D: QueryData, F: QueryFilter> Drop for QueryIter<'_, '_, D, F> {
     fn drop(&mut self) {
         if !self.iter_ptr.is_null() {
-            unsafe { bevy_query_iter_drop(self.iter_ptr) };
+            unsafe { bevy_mod_ffi_guest_sys::query::iter::bevy_query_iter_drop(self.iter_ptr) };
         }
     }
 }

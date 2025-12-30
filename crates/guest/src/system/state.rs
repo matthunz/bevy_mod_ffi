@@ -3,32 +3,12 @@ use crate::{
     system::{ParamCursor, System},
     world::World,
 };
+use bevy_mod_ffi_core::{dyn_system_param, system, system_state};
+use bevy_mod_ffi_guest_sys;
 use std::{marker::PhantomData, ptr, slice};
 
-unsafe extern "C" {
-    pub fn bevy_system_state_get(
-        world: *mut (),
-        state: *mut (),
-        out_params: *mut *mut *mut (),
-        out_params_len: *mut i32,
-    ) -> bool;
-
-    pub fn bevy_system_state_apply(world: *mut (), state: *mut ()) -> bool;
-
-    pub fn bevy_system_state_build(
-        state: *mut (),
-        f_ptr: *mut (),
-        run_system_fn: unsafe extern "C" fn(*mut (), *const (), usize),
-        out_ptr: *mut (),
-    );
-
-    pub fn bevy_system_state_drop(state: *mut ());
-
-    pub fn bevy_dyn_system_params_drop(param: *mut ());
-}
-
 pub struct SystemState<P: SystemParam> {
-    pub(crate) ptr: *mut (),
+    pub(crate) ptr: *mut system_state,
     pub(crate) state: P::State,
     _marker: PhantomData<fn() -> P>,
 }
@@ -47,11 +27,17 @@ impl<P: SystemParam> SystemState<P> {
     }
 
     pub fn get<'w, 's>(&'s mut self, world: &'w mut World) -> P::Item<'w, 's> {
-        let mut params_ptr: *mut *mut () = ptr::null_mut();
+        let mut params_ptr: *mut *mut dyn_system_param = ptr::null_mut();
         let mut params_len: i32 = 0;
 
-        let success =
-            unsafe { bevy_system_state_get(world.ptr, self.ptr, &mut params_ptr, &mut params_len) };
+        let success = unsafe {
+            bevy_mod_ffi_guest_sys::system::state::bevy_system_state_get(
+                world.ptr,
+                self.ptr,
+                &mut params_ptr,
+                &mut params_len,
+            )
+        };
 
         if !success {
             panic!("Failed to get system state");
@@ -66,14 +52,18 @@ impl<P: SystemParam> SystemState<P> {
         let mut cursor = ParamCursor::new(params);
         let out = unsafe { P::get_param(&mut self.state, &mut cursor) };
 
-        unsafe { bevy_dyn_system_params_drop(params_ptr as *mut ()) };
+        unsafe {
+            bevy_mod_ffi_guest_sys::system::state::bevy_dyn_system_params_drop(
+                params_ptr as *mut dyn_system_param,
+            )
+        };
         out
     }
 
     pub fn apply(&mut self, world: &mut World) {
         if !self.ptr.is_null() {
             unsafe {
-                bevy_system_state_apply(world.ptr, self.ptr);
+                bevy_mod_ffi_guest_sys::system::state::bevy_system_state_apply(world.ptr, self.ptr);
             }
         }
     }
@@ -94,20 +84,20 @@ impl<P: SystemParam> SystemState<P> {
         self.ptr = ptr::null_mut();
 
         #[allow(clippy::type_complexity)]
-        let system_boxed: Box<dyn FnMut(&[*mut ()])> = Box::new(move |params| {
+        let system_boxed: Box<dyn FnMut(&[*mut dyn_system_param])> = Box::new(move |params| {
             let mut param_cursor = ParamCursor::new(params);
             let params =
                 unsafe { <S::Param as SystemParam>::get_param(&mut self.state, &mut param_cursor) };
             system.run((), params);
         });
 
-        let mut out_ptr: *mut () = ptr::null_mut();
+        let mut out_ptr: *mut system = ptr::null_mut();
         unsafe {
-            bevy_system_state_build(
+            bevy_mod_ffi_guest_sys::system::state::bevy_system_state_build(
                 state_ptr,
                 Box::into_raw(Box::new(system_boxed)) as _,
                 bevy_guest_run_system,
-                &mut out_ptr as *mut _ as *mut (),
+                &mut out_ptr,
             )
         }
 
@@ -121,13 +111,13 @@ impl<P: SystemParam> SystemState<P> {
 impl<P: SystemParam> Drop for SystemState<P> {
     fn drop(&mut self) {
         if !self.ptr.is_null() {
-            unsafe { bevy_system_state_drop(self.ptr) };
+            unsafe { bevy_mod_ffi_guest_sys::system::state::bevy_system_state_drop(self.ptr) };
         }
     }
 }
 
 pub struct SystemRef<F> {
-    pub(crate) ptr: *mut (),
+    pub(crate) ptr: *mut system,
     _marker: PhantomData<F>,
 }
 

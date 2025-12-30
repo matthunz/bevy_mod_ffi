@@ -5,6 +5,8 @@ edition = "2024"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
+bevy_mod_ffi_core = { path = "../core" }
+bevy_mod_ffi_guest_sys = { path = "../guest_sys" }
 bevy_ecs = "0.17.3"
 bevy_reflect = "0.17.3"
 bytemuck = { version = "1.21", features = ["derive"] }

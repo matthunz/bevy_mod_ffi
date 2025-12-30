@@ -7,8 +7,11 @@ license = "MIT OR Apache-2.0"
 [workspace]
 members = [
   ".",
+  "crates/core",
   "crates/guest",
+  "crates/guest_sys",
   "crates/host",
+  "crates/host_sys",
   "crates/macros",
   "example/core",
   "example/guest",
@@ -21,6 +24,7 @@ macros = ["bevy_mod_ffi_macros"]
 host = ["bevy_mod_ffi_host"]
 
 [dependencies]
+bevy_mod_ffi_core = { path = "crates/core" }
 bevy_mod_ffi_guest = { path = "crates/guest", optional = true }
 bevy_mod_ffi_host = { path = "crates/host", optional = true }
 bevy_mod_ffi_macros = { path = "crates/macros", optional = true }

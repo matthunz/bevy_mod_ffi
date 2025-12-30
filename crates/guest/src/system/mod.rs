@@ -1,3 +1,4 @@
+use bevy_mod_ffi_core::dyn_system_param;
 use std::slice;
 
 mod builder;
@@ -13,11 +14,11 @@ pub use state::{SystemRef, SystemState};
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn bevy_guest_run_system(
     f_ptr: *mut (),
-    params: *const (),
+    params: *const *mut dyn_system_param,
     params_len: usize,
 ) {
-    let f = unsafe { &mut *(f_ptr as *mut Box<dyn FnMut(&[*const ()])>) };
-    let params_slice = unsafe { slice::from_raw_parts(params as _, params_len) };
+    let f = unsafe { &mut *(f_ptr as *mut Box<dyn FnMut(&[*mut dyn_system_param])>) };
+    let params_slice = unsafe { slice::from_raw_parts(params, params_len) };
     f(params_slice);
 }
 

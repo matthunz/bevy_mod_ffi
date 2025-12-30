@@ -11,7 +11,7 @@ pub fn main(input: TokenStream, attrs: TokenStream) -> TokenStream {
         #input
 
         #[unsafe(no_mangle)]
-        extern "C" fn bevy_main(world_ptr: *mut ()) {
+        extern "C" fn bevy_main(world_ptr: *mut bevy_mod_ffi::bevy_mod_ffi_core::world) {
             let mut world = unsafe { bevy_mod_ffi::world::World::from_ptr(world_ptr) };
             main(&mut world)
         }

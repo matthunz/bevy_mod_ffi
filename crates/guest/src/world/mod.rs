@@ -2,6 +2,8 @@ use crate::{
     query::{QueryData, QueryFilter, QueryState},
     system::{System, SystemRef, SystemState},
 };
+use bevy_mod_ffi_core::world;
+use bevy_mod_ffi_guest_sys;
 use bevy_reflect::TypePath;
 use std::{ffi::CString, ptr::NonNull};
 
@@ -14,33 +16,13 @@ pub use bytemuck::{Pod, Zeroable};
 mod entity;
 pub use entity::FilteredEntityMut;
 
-unsafe extern "C" {
-    fn bevy_world_get_resource_id(
-        world: *mut (),
-        type_path_ptr: *const u8,
-        type_path_len: usize,
-        out_id: *mut usize,
-    ) -> bool;
-
-    fn bevy_world_get_resource(world: *mut (), component_id: usize, out_ptr: *mut *mut u8) -> bool;
-
-    fn bevy_world_get_component_id(
-        world: *mut (),
-        type_path_ptr: *const u8,
-        type_path_len: usize,
-        out_id: *mut usize,
-    ) -> bool;
-
-    fn bevy_world_run_system(world_ptr: *mut (), system_ptr: *mut ());
-}
-
 pub struct World {
-    pub(crate) ptr: *mut (),
+    pub(crate) ptr: *mut world,
 }
 
 impl World {
     #[doc(hidden)]
-    pub unsafe fn from_ptr(ptr: *mut ()) -> Self {
+    pub unsafe fn from_ptr(ptr: *mut world) -> Self {
         Self { ptr }
     }
 
@@ -58,7 +40,7 @@ impl World {
         let mut id: usize = 0;
 
         let success = unsafe {
-            bevy_world_get_resource_id(
+            bevy_mod_ffi_guest_sys::world::bevy_world_get_resource_id(
                 self.ptr,
                 type_path_bytes.as_ptr(),
                 type_path_bytes.len(),
@@ -84,7 +66,13 @@ impl World {
     pub fn get_resource_by_id(&self, id: ComponentId) -> Option<Ptr<'_>> {
         let mut out_ptr: *mut u8 = std::ptr::null_mut();
 
-        let success = unsafe { bevy_world_get_resource(self.ptr, id.index(), &mut out_ptr) };
+        let success = unsafe {
+            bevy_mod_ffi_guest_sys::world::bevy_world_get_resource(
+                self.ptr,
+                id.index(),
+                &mut out_ptr,
+            )
+        };
         if !success {
             return None;
         }
@@ -107,7 +95,7 @@ impl World {
         let mut id: usize = 0;
 
         let success = unsafe {
-            bevy_world_get_component_id(
+            bevy_mod_ffi_guest_sys::world::bevy_world_get_component_id(
                 self.ptr,
                 type_path_bytes.as_ptr(),
                 type_path_bytes.len(),
@@ -138,6 +126,8 @@ impl World {
     }
 
     pub fn run_system_ref<S>(&mut self, system: SystemRef<S>) {
-        unsafe { bevy_world_run_system(self.ptr, system.ptr as *mut _) };
+        unsafe {
+            bevy_mod_ffi_guest_sys::world::bevy_world_run_system(self.ptr, system.ptr as *mut _)
+        };
     }
 }

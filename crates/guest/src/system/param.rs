@@ -3,6 +3,9 @@ use crate::{
     query::{Query, QueryData, QueryFilter, QueryState},
     world::World,
 };
+use bevy_mod_ffi_core::query;
+use bevy_mod_ffi_guest_sys;
+use std::ptr;
 
 #[allow(clippy::missing_safety_doc)]
 pub unsafe trait SystemParam {
@@ -50,8 +53,18 @@ where
         state: &'s mut Self::State,
         cursor: &mut ParamCursor<'_>,
     ) -> Self::Item<'w, 's> {
-        let ptr = cursor.next().unwrap();
-        Query::new(ptr, state)
+        let dyn_param_ptr = cursor.next().unwrap();
+        let mut query_ptr: *mut query = ptr::null_mut();
+        let success = unsafe {
+            bevy_mod_ffi_guest_sys::system::param::bevy_dyn_system_param_downcast_query(
+                dyn_param_ptr,
+                &mut query_ptr,
+            )
+        };
+        if !success || query_ptr.is_null() {
+            panic!("Failed to downcast DynSystemParam to Query");
+        }
+        Query::new(query_ptr, state)
     }
 }
 

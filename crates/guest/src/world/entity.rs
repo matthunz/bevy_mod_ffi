@@ -4,32 +4,18 @@ use bevy_ecs::{
     entity::Entity,
     ptr::{Ptr, PtrMut},
 };
+use bevy_mod_ffi_core::filtered_entity_mut;
+use bevy_mod_ffi_guest_sys;
 use std::{marker::PhantomData, ptr::NonNull};
-
-unsafe extern "C" {
-    pub fn bevy_filtered_entity_mut_get_component(
-        entity: *mut (),
-        component_id: usize,
-        out_ptr: *mut *mut u8,
-    ) -> bool;
-
-    pub fn bevy_filtered_entity_mut_get_component_mut(
-        entity: *mut (),
-        component_id: usize,
-        out_ptr: *mut *mut u8,
-    ) -> bool;
-
-    pub fn bevy_filtered_entity_mut_drop(entity: *mut ());
-}
 
 pub struct FilteredEntityMut<'w> {
     id: Entity,
-    ptr: *mut (),
+    ptr: *mut filtered_entity_mut,
     _marker: PhantomData<&'w mut World>,
 }
 
 impl<'w> FilteredEntityMut<'w> {
-    pub(crate) unsafe fn from_ptr(id: Entity, ptr: *mut ()) -> Self {
+    pub(crate) unsafe fn from_ptr(id: Entity, ptr: *mut filtered_entity_mut) -> Self {
         Self {
             id,
             ptr,
@@ -45,7 +31,11 @@ impl<'w> FilteredEntityMut<'w> {
         let mut out_ptr = std::ptr::null_mut();
 
         let success = unsafe {
-            bevy_filtered_entity_mut_get_component(self.ptr, component_id.index(), &mut out_ptr)
+            bevy_mod_ffi_guest_sys::world::entity::bevy_filtered_entity_mut_get_component(
+                self.ptr,
+                component_id.index(),
+                &mut out_ptr,
+            )
         };
         if !success {
             return None;
@@ -59,7 +49,11 @@ impl<'w> FilteredEntityMut<'w> {
         let mut out_ptr = std::ptr::null_mut();
 
         let success = unsafe {
-            bevy_filtered_entity_mut_get_component_mut(self.ptr, component_id.index(), &mut out_ptr)
+            bevy_mod_ffi_guest_sys::world::entity::bevy_filtered_entity_mut_get_component_mut(
+                self.ptr,
+                component_id.index(),
+                &mut out_ptr,
+            )
         };
         if !success || out_ptr.is_null() {
             return None;
@@ -72,6 +66,6 @@ impl<'w> FilteredEntityMut<'w> {
 
 impl Drop for FilteredEntityMut<'_> {
     fn drop(&mut self) {
-        unsafe { bevy_filtered_entity_mut_drop(self.ptr) };
+        unsafe { bevy_mod_ffi_guest_sys::world::entity::bevy_filtered_entity_mut_drop(self.ptr) };
     }
 }
