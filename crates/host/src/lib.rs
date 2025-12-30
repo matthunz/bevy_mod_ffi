@@ -11,9 +11,9 @@ mod world;
 
 pub type GuestRunSystemFnType = unsafe extern "C" fn(*mut (), *const (), usize);
 
-/// Safety:
+/// # Safety
 /// - `path` must be a valid path to a dynamic library compiled for the same architecture
-/// and with the same version of this crate.
+///   and with the same version of this crate.
 pub unsafe fn run(path: impl AsRef<OsStr>, world: &mut World) -> Result<(), Box<dyn Error>> {
     let guest_lib = unsafe { Library::new(path)? };
 

@@ -1,6 +1,7 @@
 use crate::world::World;
 use bevy_ecs::{
     component::ComponentId,
+    entity::Entity,
     ptr::{Ptr, PtrMut},
 };
 use std::{marker::PhantomData, ptr::NonNull};
@@ -22,16 +23,22 @@ unsafe extern "C" {
 }
 
 pub struct FilteredEntityMut<'w> {
+    id: Entity,
     ptr: *mut (),
     _marker: PhantomData<&'w mut World>,
 }
 
 impl<'w> FilteredEntityMut<'w> {
-    pub(crate) unsafe fn from_ptr(ptr: *mut ()) -> Self {
+    pub(crate) unsafe fn from_ptr(id: Entity, ptr: *mut ()) -> Self {
         Self {
+            id,
             ptr,
             _marker: PhantomData,
         }
+    }
+
+    pub fn id(&self) -> Entity {
+        self.id
     }
 
     pub fn get_by_id(&self, component_id: ComponentId) -> Option<Ptr<'w>> {

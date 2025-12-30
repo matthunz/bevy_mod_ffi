@@ -30,7 +30,7 @@ impl<'w, 's, D: QueryData, F: QueryFilter> QueryIter<'w, 's, D, F> {
 }
 
 impl<'w, 's, D: QueryData, F: QueryFilter> Iterator for QueryIter<'w, 's, D, F> {
-    type Item = (Entity, D::Item<'w, 's>);
+    type Item = D::Item<'w, 's>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let mut entity_id: u64 = 0;
@@ -46,10 +46,11 @@ impl<'w, 's, D: QueryData, F: QueryFilter> Iterator for QueryIter<'w, 's, D, F> 
         let state: &'s mut D::State =
             unsafe { &mut *(self.state as *const D::State as *mut D::State) };
 
-        let mut entity = unsafe { FilteredEntityMut::from_ptr(entity_ptr) };
+        let mut entity =
+            unsafe { FilteredEntityMut::from_ptr(Entity::from_bits(entity_id), entity_ptr) };
         let item = D::from_entity(&mut entity, state);
 
-        Some((Entity::from_bits(entity_id), item))
+        Some(item)
     }
 }
 

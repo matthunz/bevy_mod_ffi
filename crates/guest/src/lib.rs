@@ -7,6 +7,7 @@ pub mod world;
 pub mod prelude {
     pub use bevy_ecs::{
         component::ComponentId,
+        entity::Entity,
         ptr::{Ptr, PtrMut},
     };
 

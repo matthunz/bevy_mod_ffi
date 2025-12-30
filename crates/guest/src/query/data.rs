@@ -2,7 +2,7 @@ use crate::{
     query::QueryBuilder,
     world::{FilteredEntityMut, World},
 };
-use bevy_ecs::component::ComponentId;
+use bevy_ecs::{component::ComponentId, entity::Entity};
 use bevy_reflect::TypePath;
 use bytemuck::Pod;
 
@@ -20,24 +20,34 @@ pub trait QueryData: Sized {
     ) -> Self::Item<'w, 's>;
 }
 
+impl QueryData for Entity {
+    type Item<'w, 's> = Entity;
+    type State = ();
+
+    fn build_query(_builder: &mut QueryBuilder) {}
+
+    fn build_state(_world: &mut World) -> Self::State {}
+
+    fn from_entity<'w, 's>(
+        entity: &mut FilteredEntityMut<'w>,
+        _state: &'s mut Self::State,
+    ) -> Self::Item<'w, 's> {
+        entity.id()
+    }
+}
+
 impl QueryData for () {
     type Item<'w, 's> = ();
     type State = ();
 
-    fn build_query(builder: &mut QueryBuilder) {
-        let _ = builder;
-    }
+    fn build_query(_builder: &mut QueryBuilder) {}
 
-    fn build_state(world: &mut World) -> Self::State {
-        let _ = world;
-    }
+    fn build_state(_world: &mut World) -> Self::State {}
 
     fn from_entity<'w, 's>(
-        entity: &mut FilteredEntityMut<'w>,
-        state: &'s mut Self::State,
+        _entity: &mut FilteredEntityMut<'w>,
+        _state: &'s mut Self::State,
     ) -> Self::Item<'w, 's> {
-        let _ = entity;
-        let _ = state;
     }
 }
 

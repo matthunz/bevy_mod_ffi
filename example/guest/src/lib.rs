@@ -6,8 +6,8 @@ fn main(world: &mut World) {
     let r = world.get_resource::<ExampleResource>().unwrap();
     dbg!(r);
 
-    let mut query = world.query::<(&Position, &mut Velocity)>();
-    for (entity, (pos, vel)) in query.iter_mut(world) {
+    let mut query = world.query::<(Entity, &Position, &mut Velocity)>();
+    for (entity, pos, vel) in query.iter_mut(world) {
         dbg!(entity, pos, &vel);
 
         vel.x *= 2.0;
