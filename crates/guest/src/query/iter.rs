@@ -16,16 +16,14 @@ unsafe extern "C" {
 pub struct QueryIter<'w, 's, D: QueryData, F: QueryFilter> {
     iter_ptr: *mut (),
     state: &'s mut D::State,
-    world: &'w mut World,
-    _marker: PhantomData<&'s QueryState<D, F>>,
+    _marker: PhantomData<(&'w mut World, &'s QueryState<D, F>)>,
 }
 
 impl<'w, 's, D: QueryData, F: QueryFilter> QueryIter<'w, 's, D, F> {
-    pub(crate) fn new(iter_ptr: *mut (), state: &'s mut D::State, world: &'w mut World) -> Self {
+    pub(crate) fn new(iter_ptr: *mut (), state: &'s mut D::State) -> Self {
         QueryIter {
             iter_ptr,
             state,
-            world,
             _marker: PhantomData,
         }
     }
@@ -45,11 +43,10 @@ impl<'w, 's, D: QueryData, F: QueryFilter> Iterator for QueryIter<'w, 's, D, F> 
             return None;
         }
 
-        let world: &'w mut World = unsafe { &mut *(self.world as *const World as *mut World) };
         let state: &'s mut D::State =
             unsafe { &mut *(self.state as *const D::State as *mut D::State) };
 
-        let mut entity = unsafe { FilteredEntityMut::from_ptr(entity_ptr, world) };
+        let mut entity = unsafe { FilteredEntityMut::from_ptr(entity_ptr) };
         let item = D::from_entity(&mut entity, state);
 
         Some((Entity::from_bits(entity_id), item))

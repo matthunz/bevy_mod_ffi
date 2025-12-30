@@ -1,4 +1,7 @@
-use crate::query::{QueryData, QueryFilter, QueryState};
+use crate::{
+    query::{QueryData, QueryFilter, QueryState},
+    system::{System, SystemRef},
+};
 use bevy_reflect::TypePath;
 use std::{ffi::CString, ptr::NonNull};
 
@@ -33,6 +36,8 @@ unsafe extern "C" {
         type_path_len: usize,
         out_id: *mut usize,
     ) -> bool;
+
+    fn bevy_world_run_system(world_ptr: *mut (), system_ptr: *mut ());
 }
 
 pub struct World {
@@ -127,5 +132,17 @@ impl World {
 
     pub fn query_filtered<D: QueryData, F: QueryFilter>(&mut self) -> QueryState<D, F> {
         QueryState::new(self)
+    }
+
+    pub fn run_system<Marker, S>(&mut self, system: S)
+    where
+        S: System<Marker, In = (), Out = ()>,
+    {
+        let r = SystemState::new(self).build(system);
+        self.run_system_ref(r);
+    }
+
+    pub fn run_system_ref<S>(&mut self, system: SystemRef<S>) {
+        unsafe { bevy_world_run_system(self.ptr, system.ptr as *mut _ as *mut ()) };
     }
 }

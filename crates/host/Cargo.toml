@@ -10,3 +10,4 @@ crate-type = ["rlib", "cdylib"]
 [dependencies]
 bevy = { version = "0.17.3", default-features = false }
 bytemuck = { version = "1.21", features = ["derive"] }
+libloading = "0.8"

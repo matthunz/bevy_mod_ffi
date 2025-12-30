@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bevy_mod_ffi_example_core::{ExampleResource, Position, Velocity};
-use libloading::{Library, Symbol};
 
 fn main() {
     let mut app = App::new();
@@ -24,11 +23,5 @@ fn main() {
         "target/debug/libbevy_mod_ffi_example_guest.so"
     };
 
-    unsafe {
-        let lib = Library::new(guest_lib_path).unwrap();
-
-        let guest_main: Symbol<unsafe extern "C" fn(*mut ())> = lib.get(b"guest_main").unwrap();
-
-        guest_main(app.world_mut() as *mut World as *mut ());
-    }
+    unsafe { bevy_mod_ffi_host::run(guest_lib_path, app.world_mut()).unwrap() }
 }

@@ -119,13 +119,6 @@ impl<'w, D: QueryData, F: QueryFilter> QueryBuilder<'w, D, F> {
     pub fn transmute<F2, D2>(&mut self) -> &mut QueryBuilder<'w, D2, F2> {
         unsafe { mem::transmute(self) }
     }
-
-    /// Take the raw pointer, preventing drop from being called
-    pub fn take_ptr(&mut self) -> *mut () {
-        let ptr = self.ptr;
-        self.ptr = ptr::null_mut();
-        ptr
-    }
 }
 
 impl<D, F> Drop for QueryBuilder<'_, D, F> {

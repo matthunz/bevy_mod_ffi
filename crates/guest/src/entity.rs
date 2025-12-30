@@ -3,9 +3,7 @@ use bevy_ecs::{
     component::ComponentId,
     ptr::{Ptr, PtrMut},
 };
-use bevy_reflect::TypePath;
-use bytemuck::Pod;
-use std::ptr::NonNull;
+use std::{marker::PhantomData, ptr::NonNull};
 
 unsafe extern "C" {
     pub fn bevy_filtered_entity_mut_get_component(
@@ -25,15 +23,14 @@ unsafe extern "C" {
 
 pub struct FilteredEntityMut<'w> {
     ptr: *mut (),
-    // TODO change to unsafe cell
-    world: &'w mut World,
+    _marker: PhantomData<&'w mut World>,
 }
 
 impl<'w> FilteredEntityMut<'w> {
-    pub(crate) unsafe fn from_ptr(entity_ptr: *mut (), world: &'w mut World) -> Self {
+    pub(crate) unsafe fn from_ptr(ptr: *mut ()) -> Self {
         Self {
-            ptr: entity_ptr,
-            world,
+            ptr,
+            _marker: PhantomData,
         }
     }
 
@@ -51,12 +48,6 @@ impl<'w> FilteredEntityMut<'w> {
         Some(unsafe { Ptr::new(ptr) })
     }
 
-    pub fn get<T: Pod + TypePath>(&self) -> Option<&'w T> {
-        let id = self.world.get_component_id::<T>()?;
-        let ptr = self.get_by_id(id)?;
-        Some(unsafe { ptr.deref() })
-    }
-
     pub fn get_mut_by_id(&mut self, component_id: ComponentId) -> Option<PtrMut<'w>> {
         let mut out_ptr = std::ptr::null_mut();
 
@@ -69,12 +60,6 @@ impl<'w> FilteredEntityMut<'w> {
 
         let ptr = NonNull::new(out_ptr)?;
         Some(unsafe { PtrMut::new(ptr) })
-    }
-
-    pub fn get_mut<T: Pod + TypePath>(&mut self) -> Option<&'w mut T> {
-        let id = self.world.get_component_id::<T>()?;
-        let ptr_mut = self.get_mut_by_id(id)?;
-        Some(unsafe { ptr_mut.deref_mut() })
     }
 }
 

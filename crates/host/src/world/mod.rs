@@ -51,6 +51,7 @@ pub unsafe extern "C" fn bevy_world_get_resource(
 
     true
 }
+
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn bevy_world_get_component_id(
     world_ptr: *mut World,
@@ -73,6 +74,15 @@ pub unsafe extern "C" fn bevy_world_get_component_id(
 
     true
 }
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn bevy_world_run_system(world_ptr: *mut World, system_ptr: *mut ()) {
+    let world = unsafe { &mut *(world_ptr as *mut World) };
+    let system = unsafe { &mut *(system_ptr as *mut Box<dyn System<In = (), Out = ()>>) };
+
+    system.run((), world).unwrap();
+}
+
 fn get_type_id(type_path_ptr: *const u8, type_path_len: usize, world: &World) -> Option<TypeId> {
     let type_path_bytes = unsafe { slice::from_raw_parts(type_path_ptr, type_path_len as usize) };
     let type_path = CStr::from_bytes_with_nul(type_path_bytes)

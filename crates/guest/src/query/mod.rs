@@ -1,5 +1,5 @@
 use crate::World;
-use std::ptr;
+use std::{marker::PhantomData, ptr};
 
 mod builder;
 pub use builder::QueryBuilder;
@@ -25,12 +25,16 @@ unsafe extern "C" {
 pub struct Query<'w, 's, D: QueryData, F: QueryFilter = ()> {
     ptr: *mut (),
     state: &'s mut QueryState<D, F>,
-    world: &'w mut World,
+    _marker: PhantomData<&'w mut World>,
 }
 
 impl<'w, 's, D: QueryData, F: QueryFilter> Query<'w, 's, D, F> {
-    pub(crate) fn new(ptr: *mut (), state: &'s mut QueryState<D, F>, world: &'w mut World) -> Self {
-        Self { state, ptr, world }
+    pub(crate) fn new(ptr: *mut (), state: &'s mut QueryState<D, F>) -> Self {
+        Self {
+            state,
+            ptr,
+            _marker: PhantomData,
+        }
     }
 
     pub fn iter_mut<'a>(&'a mut self) -> QueryIter<'a, 'a, D, F> {
@@ -41,7 +45,7 @@ impl<'w, 's, D: QueryData, F: QueryFilter> Query<'w, 's, D, F> {
             panic!("Failed to create query iterator");
         }
 
-        QueryIter::new(iter_ptr, &mut self.state.state, self.world)
+        QueryIter::new(iter_ptr, &mut self.state.state)
     }
 }
 

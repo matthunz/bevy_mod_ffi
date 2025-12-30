@@ -15,14 +15,12 @@ unsafe extern "C" {
 
     fn bevy_param_builder_drop(builder: *mut ());
 }
-/// Opaque wrapper around a host-side param builder that accumulates DynParamBuilders
 pub struct ParamBuilder {
     pub(crate) ptr: *mut (),
     pub(crate) world_ptr: *mut (),
 }
 
 impl ParamBuilder {
-    /// Create a new param builder
     pub fn new(world: &mut World) -> Self {
         let mut builder_ptr: *mut () = std::ptr::null_mut();
 
@@ -38,15 +36,13 @@ impl ParamBuilder {
         }
     }
 
-    /// Add a query parameter to this builder
     pub fn add_query<D: QueryData + 'static, F: QueryFilter + 'static>(
         &mut self,
         world: &mut World,
     ) {
-        // Build the query using QueryBuilder to configure accesses
         let query_builder = QueryBuilder::<D, F>::new(world);
         let query_ptr = query_builder.ptr;
-        std::mem::forget(query_builder); // Don't drop - host takes ownership
+        std::mem::forget(query_builder);
 
         let success = unsafe { bevy_param_builder_add_query(self.ptr, query_ptr) };
 
@@ -55,13 +51,12 @@ impl ParamBuilder {
         }
     }
 
-    /// Build the SystemState from accumulated params, returning the state pointer
     pub fn build(mut self) -> *mut () {
         let mut state_ptr: *mut () = std::ptr::null_mut();
 
         let success = unsafe { bevy_param_builder_build(self.world_ptr, self.ptr, &mut state_ptr) };
 
-        self.ptr = std::ptr::null_mut(); // Prevent drop from freeing
+        self.ptr = std::ptr::null_mut();
 
         if !success || state_ptr.is_null() {
             panic!("Failed to build SystemState from ParamBuilder");
@@ -79,7 +74,6 @@ impl Drop for ParamBuilder {
     }
 }
 
-/// A cursor for reading param data returned from the host
 pub struct ParamCursor<'a> {
     data: &'a [*mut ()],
     position: usize,
