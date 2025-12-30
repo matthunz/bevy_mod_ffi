@@ -1,4 +1,7 @@
-use crate::{FilteredEntityMut, QueryBuilder, World};
+use crate::{
+    query::QueryBuilder,
+    world::{FilteredEntityMut, World},
+};
 use bevy_ecs::component::ComponentId;
 use bevy_reflect::TypePath;
 use bytemuck::Pod;

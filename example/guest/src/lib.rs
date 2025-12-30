@@ -1,4 +1,4 @@
-use bevy_mod_ffi::{Query, World};
+use bevy_mod_ffi::prelude::*;
 use bevy_mod_ffi_example_core::{ExampleResource, Position, Velocity};
 
 #[bevy_mod_ffi::main]

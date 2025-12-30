@@ -1,7 +1,7 @@
 use super::{ParamBuilder, ParamCursor};
 use crate::{
-    Query, World,
-    query::{QueryData, QueryFilter, QueryState},
+    query::{Query, QueryData, QueryFilter, QueryState},
+    world::World,
 };
 
 #[allow(clippy::missing_safety_doc)]

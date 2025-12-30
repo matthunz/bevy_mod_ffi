@@ -1,5 +1,5 @@
-use super::{QueryData, QueryFilter, QueryIter};
-use crate::{QueryBuilder, World};
+use super::{QueryBuilder, QueryData, QueryFilter, QueryIter};
+use crate::world::World;
 use std::{marker::PhantomData, ptr};
 
 unsafe extern "C" {

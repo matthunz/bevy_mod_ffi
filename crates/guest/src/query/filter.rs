@@ -1,4 +1,4 @@
-use crate::QueryBuilder;
+use super::QueryBuilder;
 use bevy_reflect::TypePath;
 use std::marker::PhantomData;
 

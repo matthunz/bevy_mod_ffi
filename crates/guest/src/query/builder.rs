@@ -1,5 +1,5 @@
 use super::{QueryData, QueryFilter, QueryState};
-use crate::World;
+use crate::world::World;
 use bevy_ecs::component::ComponentId;
 use bevy_reflect::TypePath;
 use std::{marker::PhantomData, mem, ptr};

@@ -1,7 +1,7 @@
 use super::{ParamBuilder, SystemParam, bevy_guest_run_system};
 use crate::{
-    World,
     system::{ParamCursor, System},
+    world::World,
 };
 use std::{marker::PhantomData, ptr, slice};
 

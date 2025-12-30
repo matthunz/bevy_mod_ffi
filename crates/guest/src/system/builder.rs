@@ -1,7 +1,9 @@
 use crate::{
-    QueryBuilder, World,
-    query::{QueryData, QueryFilter},
+    query::{QueryBuilder, QueryData, QueryFilter},
+    world::World,
 };
+use std::ptr;
+
 unsafe extern "C" {
     fn bevy_param_builder_new(world_ptr: *mut (), out_builder: *mut *mut ()) -> bool;
 
@@ -22,7 +24,7 @@ pub struct ParamBuilder {
 
 impl ParamBuilder {
     pub fn new(world: &mut World) -> Self {
-        let mut builder_ptr: *mut () = std::ptr::null_mut();
+        let mut builder_ptr: *mut () = ptr::null_mut();
 
         let success = unsafe { bevy_param_builder_new(world.ptr, &mut builder_ptr) };
 
@@ -52,11 +54,11 @@ impl ParamBuilder {
     }
 
     pub fn build(mut self) -> *mut () {
-        let mut state_ptr: *mut () = std::ptr::null_mut();
+        let mut state_ptr: *mut () = ptr::null_mut();
 
         let success = unsafe { bevy_param_builder_build(self.world_ptr, self.ptr, &mut state_ptr) };
 
-        self.ptr = std::ptr::null_mut();
+        self.ptr = ptr::null_mut();
 
         if !success || state_ptr.is_null() {
             panic!("Failed to build SystemState from ParamBuilder");

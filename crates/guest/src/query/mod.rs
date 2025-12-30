@@ -1,4 +1,4 @@
-use crate::World;
+use crate::world::World;
 use std::{marker::PhantomData, ptr};
 
 mod builder;

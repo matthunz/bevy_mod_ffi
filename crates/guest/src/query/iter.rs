@@ -1,5 +1,5 @@
 use super::{QueryData, QueryFilter, QueryState};
-use crate::{FilteredEntityMut, World};
+use crate::world::{FilteredEntityMut, World};
 use bevy_ecs::entity::Entity;
 use std::marker::PhantomData;
 

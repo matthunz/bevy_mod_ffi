@@ -1,6 +1,6 @@
 use bevy::ecs::world::World;
 use libloading::{Library, Symbol};
-use std::{error::Error, ffi::OsStr, path::Path};
+use std::{error::Error, ffi::OsStr};
 
 mod query;
 

@@ -1,4 +1,4 @@
-use crate::World;
+use crate::world::World;
 use bevy_ecs::{
     component::ComponentId,
     ptr::{Ptr, PtrMut},
