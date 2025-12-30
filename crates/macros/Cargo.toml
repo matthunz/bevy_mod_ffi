@@ -1,0 +1,12 @@
+[package]
+name = "bevy_mod_ffi_macros"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1.0.104"
+quote = "1.0.42"
+syn = "2.0.111"

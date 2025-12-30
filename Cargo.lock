@@ -273,6 +273,11 @@ dependencies = [
 [[package]]
 name = "bevy_mod_ffi"
 version = "0.1.0"
+dependencies = [
+ "bevy_mod_ffi_guest",
+ "bevy_mod_ffi_host",
+ "bevy_mod_ffi_macros",
+]
 
 [[package]]
 name = "bevy_mod_ffi_example_core"
@@ -287,8 +292,8 @@ dependencies = [
 name = "bevy_mod_ffi_example_guest"
 version = "0.1.0"
 dependencies = [
+ "bevy_mod_ffi",
  "bevy_mod_ffi_example_core",
- "bevy_mod_ffi_guest",
  "bytemuck",
 ]
 
@@ -297,8 +302,8 @@ name = "bevy_mod_ffi_example_host"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bevy_mod_ffi",
  "bevy_mod_ffi_example_core",
- "bevy_mod_ffi_host",
  "libloading",
 ]
 
@@ -318,6 +323,15 @@ dependencies = [
  "bevy",
  "bytemuck",
  "libloading",
+]
+
+[[package]]
+name = "bevy_mod_ffi_macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

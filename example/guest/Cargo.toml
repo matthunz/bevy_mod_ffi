@@ -8,6 +8,6 @@ license = "MIT OR Apache-2.0"
 crate-type = ["cdylib"]
 
 [dependencies]
-bevy_mod_ffi_guest = { path = "../../crates/guest" }
+bevy_mod_ffi = { path = "../..", features = ["guest", "macros"] }
 bevy_mod_ffi_example_core = { path = "../core" }
 bytemuck = { version = "1.21", features = ["derive"] }
