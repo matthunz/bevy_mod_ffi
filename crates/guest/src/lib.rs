@@ -45,6 +45,7 @@ pub struct World {
 }
 
 impl World {
+    #[doc(hidden)]
     pub unsafe fn from_ptr(ptr: *mut ()) -> Self {
         Self { ptr }
     }
@@ -143,6 +144,6 @@ impl World {
     }
 
     pub fn run_system_ref<S>(&mut self, system: SystemRef<S>) {
-        unsafe { bevy_world_run_system(self.ptr, system.ptr as *mut _ as *mut ()) };
+        unsafe { bevy_world_run_system(self.ptr, system.ptr as *mut _) };
     }
 }

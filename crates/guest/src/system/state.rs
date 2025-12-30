@@ -93,6 +93,7 @@ impl<P: SystemParam> SystemState<P> {
         let state_ptr = self.ptr;
         self.ptr = ptr::null_mut();
 
+        #[allow(clippy::type_complexity)]
         let system_boxed: Box<dyn FnMut(&[*mut ()])> = Box::new(move |params| {
             let mut param_cursor = ParamCursor::new(params);
             let params =

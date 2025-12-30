@@ -3,8 +3,8 @@ use crate::{
     Query, World,
     query::{QueryData, QueryFilter, QueryState},
 };
-use std::ptr;
 
+#[allow(clippy::missing_safety_doc)]
 pub unsafe trait SystemParam {
     type State: 'static;
 
@@ -50,7 +50,7 @@ where
         state: &'s mut Self::State,
         cursor: &mut ParamCursor<'_>,
     ) -> Self::Item<'w, 's> {
-        let ptr = cursor.next().unwrap_or(ptr::null_mut());
+        let ptr = cursor.next().unwrap();
         Query::new(ptr, state)
     }
 }

@@ -84,17 +84,21 @@ impl<'a> ParamCursor<'a> {
         Self { data, position: 0 }
     }
 
-    pub fn next(&mut self) -> Option<*mut ()> {
-        if self.position < self.data.len() {
-            let ptr = self.data[self.position];
-            self.position += 1;
-            Some(ptr)
-        } else {
-            None
-        }
-    }
-
     pub fn position(&self) -> usize {
         self.position
+    }
+}
+
+impl Iterator for ParamCursor<'_> {
+    type Item = *mut ();
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.position >= self.data.len() {
+            None
+        } else {
+            let item = self.data[self.position];
+            self.position += 1;
+            Some(item)
+        }
     }
 }

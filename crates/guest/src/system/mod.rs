@@ -9,6 +9,7 @@ pub use param::SystemParam;
 mod state;
 pub use state::{SystemRef, SystemState};
 
+#[allow(clippy::missing_safety_doc)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn bevy_guest_run_system(
     f_ptr: *mut (),
@@ -36,7 +37,7 @@ pub struct InputMarker;
 
 macro_rules! impl_system_fn {
     ($($param:ident),*) => {
-        #[allow(non_snake_case)]
+        #[allow(non_snake_case, clippy::too_many_arguments)]
         impl<Out, F, $($param: SystemParam,)*> System<fn($($param,)*) -> Out> for F
         where
             F: Send + Sync + 'static,
@@ -65,7 +66,7 @@ macro_rules! impl_system_fn {
             }
         }
 
-        #[allow(non_snake_case)]
+        #[allow(non_snake_case, clippy::too_many_arguments)]
         impl<In, Out, Func, $($param: SystemParam,)*> System<(InputMarker, fn(In, $($param,)*) -> Out)> for Func
         where
             Func: Send + Sync + 'static,
