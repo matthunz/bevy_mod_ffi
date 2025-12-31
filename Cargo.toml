@@ -29,3 +29,6 @@ bevy_mod_ffi_core = { path = "crates/core", version = "0.1.0" }
 bevy_mod_ffi_guest = { path = "crates/guest", version = "0.1.0", optional = true }
 bevy_mod_ffi_host = { path = "crates/host", version = "0.1.0", optional = true }
 bevy_mod_ffi_macros = { path = "crates/macros", version = "0.1.0", optional = true }
+
+[package.metadata.docs.rs]
+all-features = true
