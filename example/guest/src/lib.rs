@@ -1,5 +1,14 @@
 use bevy_mod_ffi::prelude::*;
 use bevy_mod_ffi_example_core::{ExampleResource, Position, Velocity};
+use bevy_reflect::TypePath;
+
+#[repr(C)]
+#[derive(Clone, Copy, Zeroable, Pod, TypePath)]
+struct Health {
+    value: f32,
+}
+
+impl Component for Health {}
 
 #[bevy_mod_ffi::main]
 fn main(world: &mut World) {
@@ -19,4 +28,6 @@ fn main(world: &mut World) {
             dbg!(x);
         }
     });
+
+    world.register_component::<Health>();
 }

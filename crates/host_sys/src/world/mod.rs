@@ -1,9 +1,12 @@
 use bevy::{
-    ecs::{component::ComponentId, world::World},
+    ecs::{
+        component::{ComponentCloneBehavior, ComponentDescriptor, ComponentId, StorageType},
+        world::World,
+    },
     prelude::*,
 };
 use bevy_mod_ffi_core::{system, world};
-use std::{any::TypeId, ffi::CStr, slice};
+use std::{alloc::Layout, any::TypeId, ffi::CStr, slice};
 
 pub mod entity;
 
@@ -82,6 +85,70 @@ pub unsafe extern "C" fn bevy_world_run_system(world_ptr: *mut world, system_ptr
     let system = unsafe { &mut *(system_ptr as *mut Box<dyn System<In = (), Out = ()>>) };
 
     system.run((), world).unwrap();
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn bevy_world_register_component(
+    world_ptr: *mut world,
+    name_ptr: *const u8,
+    name_len: usize,
+    size: usize,
+    align: usize,
+    is_table: bool,
+    out_id: *mut usize,
+) -> bool {
+    let world = unsafe { &mut *(world_ptr as *mut World) };
+
+    let name_bytes = unsafe { slice::from_raw_parts(name_ptr, name_len) };
+    let name = CStr::from_bytes_with_nul(name_bytes)
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_string();
+
+    let layout = match Layout::from_size_align(size, align) {
+        Ok(l) => l,
+        Err(_) => return false,
+    };
+
+    let storage_type = if is_table {
+        StorageType::Table
+    } else {
+        StorageType::SparseSet
+    };
+    let descriptor = unsafe {
+        ComponentDescriptor::new_with_layout(
+            name,
+            storage_type,
+            layout,
+            None,
+            true,
+            ComponentCloneBehavior::Default,
+        )
+    };
+
+    let id = world.register_component_with_descriptor(descriptor);
+    unsafe {
+        *out_id = id.index();
+    }
+
+    true
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn bevy_world_spawn_empty(
+    world_ptr: *mut world,
+    out_entity: *mut u64,
+) -> bool {
+    let world = unsafe { &mut *(world_ptr as *mut World) };
+
+    let entity = world.spawn_empty().id();
+
+    unsafe {
+        *out_entity = entity.to_bits();
+    }
+
+    true
 }
 
 fn get_type_id(type_path_ptr: *const u8, type_path_len: usize, world: &World) -> Option<TypeId> {

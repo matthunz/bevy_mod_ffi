@@ -992,6 +992,7 @@ version = "0.1.0"
 dependencies = [
  "bevy_mod_ffi",
  "bevy_mod_ffi_example_core",
+ "bevy_reflect",
  "bytemuck",
 ]
 

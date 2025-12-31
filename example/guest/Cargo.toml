@@ -10,4 +10,5 @@ crate-type = ["cdylib"]
 [dependencies]
 bevy_mod_ffi = { path = "../..", features = ["guest", "macros"] }
 bevy_mod_ffi_example_core = { path = "../core" }
+bevy_reflect = "0.17.3"
 bytemuck = { version = "1.21", features = ["derive"] }

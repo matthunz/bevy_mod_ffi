@@ -1,3 +1,5 @@
+pub mod component;
+
 pub mod query;
 
 pub mod system;
@@ -12,6 +14,8 @@ pub mod prelude {
     };
 
     pub use bytemuck::{Pod, Zeroable};
+
+    pub use crate::component::Component;
 
     pub use crate::query::{Query, QueryBuilder};
 

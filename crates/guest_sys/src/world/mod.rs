@@ -26,4 +26,14 @@ unsafe extern "C" {
     ) -> bool;
 
     pub fn bevy_world_run_system(world_ptr: *mut world, system_ptr: *mut system);
+
+    pub fn bevy_world_register_component(
+        world: *mut world,
+        name_ptr: *const u8,
+        name_len: usize,
+        size: usize,
+        align: usize,
+        is_table: bool,
+        out_id: *mut usize,
+    ) -> bool;
 }

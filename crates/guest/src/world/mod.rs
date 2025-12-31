@@ -1,14 +1,16 @@
 use crate::{
+    component::{Component, StorageType},
     query::{QueryData, QueryFilter, QueryState},
     system::{System, SystemRef, SystemState},
 };
 use bevy_mod_ffi_core::world;
 use bevy_mod_ffi_guest_sys;
 use bevy_reflect::TypePath;
-use std::{ffi::CString, ptr::NonNull};
+use std::{alloc::Layout, ffi::CString, ptr::NonNull};
 
 pub use bevy_ecs::{
     component::ComponentId,
+    entity::Entity,
     ptr::{Ptr, PtrMut},
 };
 pub use bytemuck::{Pod, Zeroable};
@@ -24,6 +26,31 @@ impl World {
     #[doc(hidden)]
     pub unsafe fn from_ptr(ptr: *mut world) -> Self {
         Self { ptr }
+    }
+
+    pub fn register_component<C: Component>(&mut self) -> ComponentId {
+        let name = C::type_path();
+
+        let layout = Layout::new::<C>();
+        let name_cstring = CString::new(name).unwrap();
+        let name_bytes = name_cstring.as_bytes_with_nul();
+
+        let mut id: usize = 0;
+        let success = unsafe {
+            bevy_mod_ffi_guest_sys::world::bevy_world_register_component(
+                self.ptr,
+                name_bytes.as_ptr(),
+                name_bytes.len(),
+                layout.size(),
+                layout.align(),
+                matches!(C::STORAGE_TYPE, StorageType::Table),
+                &mut id,
+            )
+        };
+
+        assert!(success, "Failed to register component: {}", name);
+
+        ComponentId::new(id)
     }
 
     pub fn get_resource_id<R>(&self) -> Option<ComponentId>
