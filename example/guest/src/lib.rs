@@ -1,4 +1,4 @@
-use bevy_mod_ffi::prelude::*;
+use bevy_mod_ffi::guest::prelude::*;
 use bevy_mod_ffi_example_core::{Damage, Position, Velocity};
 use bevy_reflect::TypePath;
 

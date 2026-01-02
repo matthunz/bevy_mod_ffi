@@ -20,6 +20,7 @@ members = [
 ]
 
 [features]
+default = []
 guest = ["bevy_mod_ffi_guest"]
 macros = ["bevy_mod_ffi_macros"]
 host = ["bevy_mod_ffi_host"]

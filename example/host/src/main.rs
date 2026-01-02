@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_mod_ffi::SharedRegistry;
+use bevy_mod_ffi::host::prelude::*;
 use bevy_mod_ffi_example_core::{Damage, Position, Velocity};
 
 fn main() {
@@ -7,23 +7,21 @@ fn main() {
     registry.register_event::<Damage>();
 
     let mut app = App::new();
-    app.add_plugins(MinimalPlugins)
+    app.add_plugins((DefaultPlugins, FfiPlugin))
         .init_resource::<AppTypeRegistry>()
-        .insert_resource(registry);
+        .insert_resource(registry)
+        .add_systems(Startup, setup);
 
     app.world_mut().register_component::<Position>();
     app.world_mut().register_component::<Velocity>();
-    app.update();
+    app.run();
+}
 
+fn setup(asset_server: Res<AssetServer>) {
     let path = format!(
-        "target/debug/{}bevy_mod_ffi_example_guest.{}",
+        "{}bevy_mod_ffi_example_guest.{}",
         std::env::consts::DLL_PREFIX,
         std::env::consts::DLL_EXTENSION
     );
-
-    let lib = unsafe { bevy_mod_ffi::run(path, app.world_mut()).unwrap() };
-
-    app.world_mut().trigger(Damage { amount: 2. });
-
-    lib.unload(app.world_mut());
+    let _ = asset_server.load::<DynamicPlugin>(path);
 }

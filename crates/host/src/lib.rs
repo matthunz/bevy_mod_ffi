@@ -1,17 +1,28 @@
 pub use bevy_mod_ffi_host_sys as sys;
 
 use bevy::ecs::world::World;
+use bevy_mod_ffi_host_sys::{CurrentLibraryHandle, LibraryHandle};
 use libloading::{Library, Symbol};
 use std::{error::Error, ffi::OsStr, sync::Arc};
 
+pub mod plugin;
 pub mod query;
-
 pub mod system;
-
 pub mod world;
 
-use bevy_mod_ffi_host_sys::{CurrentLibraryHandle, LibraryHandle};
+pub mod prelude {
+    pub use crate::{
+        DynamicPlugin, DynamicPluginHandle, DynamicPlugins, DynamicPluiginLoader, FfiPlugin,
+        LibraryId, LoadedLibrary, SharedRegistry,
+    };
+}
+
+pub use plugin::{
+    DynamicPlugin, DynamicPluginHandle, DynamicPlugins, DynamicPluiginLoader, FfiPlugin,
+};
+
 pub use bevy_mod_ffi_host_sys::{LibraryId, SharedRegistry};
+
 #[derive(Clone)]
 pub struct LoadedLibrary {
     id: LibraryId,
@@ -19,6 +30,17 @@ pub struct LoadedLibrary {
 }
 
 impl LoadedLibrary {
+    pub(crate) fn new(library: Arc<Library>, id: LibraryId) -> Self {
+        Self {
+            _library: library,
+            id,
+        }
+    }
+
+    pub fn id(&self) -> LibraryId {
+        self.id
+    }
+
     pub fn unload(self, world: &mut World) {
         world.remove_resource::<CurrentLibraryHandle>();
 
@@ -37,6 +59,7 @@ impl LoadedLibrary {
         }
     }
 }
+
 pub unsafe fn run(
     path: impl AsRef<OsStr>,
     world: &mut World,
@@ -68,8 +91,5 @@ pub unsafe fn run(
     }
     world.remove_resource::<CurrentLibraryHandle>();
 
-    Ok(LoadedLibrary {
-        _library: guest_lib,
-        id: library_id,
-    })
+    Ok(LoadedLibrary::new(guest_lib, library_id))
 }
