@@ -9,6 +9,7 @@ use bevy::{
 use bevy_mod_ffi_core::{dyn_system_param, system, system_state, world, RunSystemFn};
 
 pub mod observer;
+pub use observer::{CurrentLibraryHandle, LibraryHandle};
 
 pub mod param;
 

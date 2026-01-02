@@ -1,6 +1,7 @@
 use crate::SharedRegistry;
 use bevy::{
     ecs::{
+        entity::Entity,
         event::Event,
         observer::On,
         prelude::*,
@@ -10,9 +11,12 @@ use bevy::{
     prelude::*,
 };
 use bevy_mod_ffi_core::{dyn_system_param, system_state, world, RunObserverFn};
-use std::{alloc::Layout, ffi::CStr, slice};
+use std::{alloc::Layout, any::Any, ffi::CStr, marker::PhantomData, slice, sync::Arc};
 
 type SharedSystemState = SystemState<(Vec<DynSystemParam<'static, 'static>>,)>;
+
+#[derive(Clone)]
+pub struct LibraryHandle(pub Arc<dyn Any + Send + Sync>);
 
 pub trait Observable: Send + Sync + 'static {
     fn type_path(&self) -> &'static str;
@@ -23,7 +27,8 @@ pub trait Observable: Send + Sync + 'static {
         state: Box<SharedSystemState>,
         f_ptr: usize,
         run_observer_fn: RunObserverFn,
-    );
+        library_handle: Option<LibraryHandle>,
+    ) -> Entity;
 
     fn trigger(&self, world: &mut World, event_data: &[u8]);
 
@@ -33,13 +38,13 @@ pub trait Observable: Send + Sync + 'static {
 }
 
 pub struct TypedEventOps<E> {
-    _marker: std::marker::PhantomData<E>,
+    _marker: PhantomData<E>,
 }
 
 impl<E> TypedEventOps<E> {
     pub fn new() -> Self {
         Self {
-            _marker: std::marker::PhantomData,
+            _marker: PhantomData,
         }
     }
 }
@@ -64,9 +69,12 @@ where
         state: Box<SharedSystemState>,
         f_ptr: usize,
         run_observer_fn: RunObserverFn,
-    ) {
+        library_handle: Option<LibraryHandle>,
+    ) -> Entity {
         let observer_system =
             state.build_any_system(move |on: On<E>, params: Vec<DynSystemParam>| {
+                let _ = &library_handle;
+
                 let mut param_ptrs: Vec<*mut dyn_system_param> = Vec::new();
                 for param in params {
                     let boxed = Box::new(param);
@@ -82,7 +90,7 @@ where
                 };
             });
 
-        world.add_observer(observer_system);
+        world.add_observer(observer_system).id()
     }
 
     fn trigger(&self, world: &mut World, event_data: &[u8]) {
@@ -99,6 +107,9 @@ where
         Layout::new::<E>()
     }
 }
+
+#[derive(Resource, Clone)]
+pub struct CurrentLibraryHandle(pub Option<LibraryHandle>);
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn bevy_system_state_build_on(
@@ -123,13 +134,25 @@ pub unsafe extern "C" fn bevy_system_state_build_on(
 
     let f_ptr_n = f_ptr as usize;
 
+    let library_handle = world
+        .get_resource::<CurrentLibraryHandle>()
+        .and_then(|h| h.0.clone());
+
     let mut registry = match world.remove_resource::<SharedRegistry>() {
         Some(r) => r,
         None => return false,
     };
 
     if let Some(event_ops) = registry.events.remove(event_name) {
-        event_ops.add_observer_with_state(world, state, f_ptr_n, run_observer_fn);
+        let observer_entity = event_ops.add_observer_with_state(
+            world,
+            state,
+            f_ptr_n,
+            run_observer_fn,
+            library_handle,
+        );
+
+        registry.register_observer(observer_entity);
 
         let key = event_ops.type_path();
         registry.events.insert(key, event_ops);
