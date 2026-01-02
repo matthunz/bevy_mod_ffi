@@ -20,3 +20,11 @@ pub struct Velocity {
 }
 
 impl SharedComponent for Velocity {}
+
+#[derive(Event, Clone, Copy, Debug, Pod, Zeroable, Reflect)]
+#[repr(C)]
+pub struct Damage {
+    pub amount: f32,
+}
+
+impl SharedEvent for Damage {}

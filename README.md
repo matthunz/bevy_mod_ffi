@@ -9,7 +9,7 @@
 #### Client
 ```rs
 use bevy_mod_ffi::prelude::*;
-use bevy_mod_ffi_example_core::{Position, Velocity};
+use bevy_mod_ffi_example_core::{Damage, Position, Velocity};
 use bevy_reflect::TypePath;
 
 #[repr(C)]
@@ -29,6 +29,7 @@ fn main(world: &mut World) {
     ));
 
     world.run_system(
+        (),
         |mut query: Query<(Entity, &mut Position, &Velocity), With<Zombie>>| {
             for (entity, pos, vel) in query.iter_mut() {
                 dbg!(entity, &pos, vel);
@@ -38,32 +39,39 @@ fn main(world: &mut World) {
             }
         },
     );
+
+    world.add_observer(|event: On<Damage>| {
+        println!("Ouch! Amount: {}", event.amount);
+    });
+
+    world.trigger(Damage { amount: 42.0 });
 }
 ```
 
 #### Host
 ```rs
 use bevy::prelude::*;
-use bevy_mod_ffi::DynamicComponentRegistry;
-use bevy_mod_ffi_example_core::{Position, Velocity};
+use bevy_mod_ffi::SharedRegistry;
+use bevy_mod_ffi_example_core::{Damage, Position, Velocity};
 
 fn main() {
+    let mut registry = SharedRegistry::default();
+    registry.register_event::<Damage>();
+
     let mut app = App::new();
     app.add_plugins(MinimalPlugins)
         .init_resource::<AppTypeRegistry>()
-        .init_resource::<DynamicComponentRegistry>();
+        .insert_resource(registry);
+
     app.world_mut().register_component::<Position>();
     app.world_mut().register_component::<Velocity>();
     app.update();
 
-    let guest_lib_path = if cfg!(windows) {
-        "target/debug/bevy_mod_ffi_example_guest.dll"
-    } else if cfg!(target_os = "macos") {
-        "target/debug/libbevy_mod_ffi_example_guest.dylib"
-    } else {
-        "target/debug/libbevy_mod_ffi_example_guest.so"
-    };
-
-    unsafe { bevy_mod_ffi::run(guest_lib_path, app.world_mut()).unwrap() }
+    let path = format!(
+        "target/debug/{}bevy_mod_ffi_example_guest.{}",
+        std::env::consts::DLL_PREFIX,
+        std::env::consts::DLL_EXTENSION
+    );
+    unsafe { bevy_mod_ffi::run(path, app.world_mut()).unwrap() }
 }
 ```

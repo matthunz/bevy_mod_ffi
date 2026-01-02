@@ -10,4 +10,4 @@ bevy_mod_ffi_core = { path = "../core", version = "0.1.0" }
 bevy_mod_ffi_guest_sys = { path = "../guest_sys", version = "0.1.0" }
 bevy_ecs = "0.17.3"
 bevy_reflect = "0.17.3"
-bytemuck = { version = "1.21", features = ["derive"] }
+bytemuck = { version = "1.21", features = ["derive", "extern_crate_alloc"] }

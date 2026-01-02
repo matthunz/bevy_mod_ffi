@@ -1,4 +1,4 @@
-use crate::{DynamicComponentRegistry, SharedSystem, SystemIn};
+use crate::{SharedRegistry, SharedSystem, SystemIn};
 use bevy::{
     ecs::{
         component::{ComponentCloneBehavior, ComponentDescriptor, ComponentId, StorageType},
@@ -84,11 +84,11 @@ pub unsafe extern "C" fn bevy_world_get_component_id(
             return false;
         };
         component_id
-    } else if let Some(registry) = world.get_resource::<DynamicComponentRegistry>() {
-        let Some(component_id) = registry.type_path_to_id.get(type_path) else {
+    } else if let Some(registry) = world.get_resource::<SharedRegistry>() {
+        let Some(component_id) = registry.get_component_id(type_path) else {
             return false;
         };
-        *component_id
+        component_id
     } else {
         return false;
     };
@@ -160,7 +160,7 @@ pub unsafe extern "C" fn bevy_world_register_component(
 
     let id = world.register_component_with_descriptor(descriptor);
 
-    let mut registry = world.resource_mut::<DynamicComponentRegistry>();
+    let mut registry = world.resource_mut::<SharedRegistry>();
     registry.type_path_to_id.insert(name, id);
 
     unsafe {
@@ -229,4 +229,75 @@ fn get_type_id(type_path_ptr: *const u8, type_path_len: usize, world: &World) ->
 
     let type_id = registration.type_id();
     Some(type_id)
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn bevy_world_trigger_event(
+    world_ptr: *mut world,
+    event_name_ptr: *const u8,
+    event_name_len: usize,
+    event_data_ptr: *const u8,
+    event_data_len: usize,
+) -> bool {
+    let world = unsafe { &mut *(world_ptr as *mut World) };
+
+    let event_name_bytes = unsafe { slice::from_raw_parts(event_name_ptr, event_name_len) };
+    let event_name = match CStr::from_bytes_with_nul(event_name_bytes) {
+        Ok(cstr) => match cstr.to_str() {
+            Ok(s) => s,
+            Err(_) => return false,
+        },
+        Err(_) => return false,
+    };
+
+    let event_data = unsafe { slice::from_raw_parts(event_data_ptr, event_data_len) };
+
+    let mut registry = world.remove_resource::<SharedRegistry>().unwrap();
+
+    if let Some(event_ops) = registry.events.remove(event_name) {
+        event_ops.trigger(world, event_data);
+        let key = event_ops.type_path();
+        registry.events.insert(key, event_ops);
+        world.insert_resource(registry);
+        true
+    } else {
+        world.insert_resource(registry);
+        false
+    }
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn bevy_world_trigger_event_targets(
+    world_ptr: *mut world,
+    event_name_ptr: *const u8,
+    event_name_len: usize,
+    event_data_ptr: *const u8,
+    event_data_len: usize,
+    entity_bits: u64,
+) -> bool {
+    let world = unsafe { &mut *(world_ptr as *mut World) };
+    let entity = Entity::from_bits(entity_bits);
+
+    let event_name_bytes = unsafe { slice::from_raw_parts(event_name_ptr, event_name_len) };
+    let event_name = match CStr::from_bytes_with_nul(event_name_bytes) {
+        Ok(cstr) => match cstr.to_str() {
+            Ok(s) => s,
+            Err(_) => return false,
+        },
+        Err(_) => return false,
+    };
+
+    let event_data = unsafe { slice::from_raw_parts(event_data_ptr, event_data_len) };
+
+    let mut registry = world.remove_resource::<SharedRegistry>().unwrap();
+    if let Some(event_ops) = registry.events.remove(event_name) {
+        event_ops.trigger_for_entity(world, event_data, entity);
+        let key = event_ops.type_path();
+        registry.events.insert(key, event_ops);
+        world.insert_resource(registry);
+        true
+    } else {
+        world.insert_resource(registry);
+        false
+    }
 }

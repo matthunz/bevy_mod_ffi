@@ -1,5 +1,8 @@
 pub mod param;
-pub mod state;
-
 pub use param::*;
+
+mod observer;
+pub use observer::*;
+
+pub mod state;
 pub use state::*;

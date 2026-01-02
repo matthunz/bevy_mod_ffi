@@ -1,8 +1,12 @@
 use bevy_mod_ffi_core::dyn_system_param;
-use std::{marker::PhantomData, slice};
+use bytemuck::Pod;
+use std::slice;
 
 mod builder;
 pub use builder::{ParamBuilder, ParamCursor};
+
+mod observer;
+pub use observer::{IntoObserverSystem, ObserverSystem, On, SharedEvent};
 
 mod param;
 pub use param::SystemParam;
@@ -25,6 +29,13 @@ pub unsafe extern "C" fn bevy_guest_run_system(
     let params_slice = unsafe { slice::from_raw_parts(params, params_len) };
     f(params_slice, input_ptr, output_ptr);
 }
+
+pub trait SystemInput {}
+
+#[repr(transparent)]
+pub struct In<T>(pub T);
+
+impl<T: Pod> SystemInput for In<T> {}
 
 pub trait System {
     type In;
@@ -49,13 +60,22 @@ pub trait IntoSystem<Marker> {
 pub struct InputMarker;
 
 pub struct FunctionSystem<F, Marker> {
-    f: F,
+    pub f: F,
     _marker: std::marker::PhantomData<fn() -> Marker>,
+}
+
+impl<F, Marker> FunctionSystem<F, Marker> {
+    pub fn new(f: F) -> Self {
+        Self {
+            f,
+            _marker: std::marker::PhantomData,
+        }
+    }
 }
 
 macro_rules! impl_system_fn {
     ($($param:ident),*) => {
-        #[allow(non_snake_case, clippy::too_many_arguments)]
+        #[allow(non_snake_case)]
         impl<Out, F, $($param: SystemParam,)*> System for FunctionSystem<F, fn($($param,)*) -> Out>
         where
             F: Send + Sync + 'static,
@@ -84,7 +104,7 @@ macro_rules! impl_system_fn {
             }
         }
 
-        #[allow(non_snake_case, clippy::too_many_arguments)]
+        #[allow(non_snake_case)]
         impl<Out, F, $($param: SystemParam,)*> IntoSystem<fn($($param,)*) -> Out> for F
         where
             F: Send + Sync + 'static,
@@ -98,24 +118,21 @@ macro_rules! impl_system_fn {
             type System = FunctionSystem<F, fn($($param,)*) -> Out>;
 
             fn into_system(self) -> Self::System {
-                FunctionSystem {
-                    f: self,
-                    _marker: PhantomData,
-                }
+                FunctionSystem::new(self)
             }
         }
 
-        #[allow(non_snake_case, clippy::too_many_arguments)]
-        impl<In, Out, Func, $($param: SystemParam,)*> System for FunctionSystem<Func, (InputMarker, fn(In, $($param,)*) -> Out)>
+        #[allow(non_snake_case)]
+        impl<I, Out, Func, $($param: SystemParam,)*> System for FunctionSystem<Func, (InputMarker, fn(I, $($param,)*) -> Out)>
         where
+            I: SystemInput,
             Func: Send + Sync + 'static,
             for<'a> &'a mut Func:
-                FnMut(In, $($param,)*) -> Out +
-                FnMut(In, $($param::Item<'_, '_>,)*) -> Out,
-            In: 'static,
+                FnMut(I, $($param,)*) -> Out +
+                FnMut(I, $($param::Item<'_, '_>,)*) -> Out,
             Out: 'static,
         {
-            type In = In;
+            type In = I;
             type Out = Out;
             type Param = ($($param,)*);
 
@@ -124,9 +141,9 @@ macro_rules! impl_system_fn {
                 input: Self::In,
                 param_value: <Self::Param as SystemParam>::Item<'_, '_>,
             ) -> Self::Out {
-                fn call<In, Out, $($param,)*>(
-                    mut f: impl FnMut(In, $($param,)*) -> Out,
-                    input: In,
+                fn call<I, Out, $($param,)*>(
+                    mut f: impl FnMut(I, $($param,)*) -> Out,
+                    input: I,
                     $($param: $param,)*
                 ) -> Out {
                     f(input, $($param,)*)
@@ -137,29 +154,27 @@ macro_rules! impl_system_fn {
         }
 
         #[allow(non_snake_case, clippy::too_many_arguments)]
-        impl<In, Out, Func, $($param: SystemParam,)*> IntoSystem<(InputMarker, fn(In, $($param,)*) -> Out)> for Func
+        impl<I, Out, Func, $($param: SystemParam,)*> IntoSystem<(InputMarker, fn(I, $($param,)*) -> Out)> for Func
         where
+            I: SystemInput,
             Func: Send + Sync + 'static,
             for<'a> &'a mut Func:
-                FnMut(In, $($param,)*) -> Out +
-                FnMut(In, $($param::Item<'_, '_>,)*) -> Out,
-            In: 'static,
+                FnMut(I, $($param,)*) -> Out +
+                FnMut(I, $($param::Item<'_, '_>,)*) -> Out,
             Out: 'static,
         {
-            type In = In;
+            type In = I;
             type Out = Out;
-            type System = FunctionSystem<Func, (InputMarker, fn(In, $($param,)*) -> Out)>;
+            type System = FunctionSystem<Func, (InputMarker, fn(I, $($param,)*) -> Out)>;
 
             fn into_system(self) -> Self::System {
-                FunctionSystem {
-                    f: self,
-                    _marker: PhantomData,
-                }
+                FunctionSystem::new(self)
             }
         }
     };
 }
 
+impl_system_fn!();
 impl_system_fn!(P0);
 impl_system_fn!(P0, P1);
 impl_system_fn!(P0, P1, P2);

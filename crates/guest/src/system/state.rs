@@ -77,10 +77,6 @@ impl<P: SystemParam + 'static> SystemState<P> {
         &mut self.state
     }
 
-    /// Build a system with input and output support.
-    ///
-    /// The input type `In` and output type `Out` must implement `FfiSafe` to be
-    /// safely passed across the FFI boundary as raw bytes.
     pub fn build<Marker, In, Out, S>(mut self, system: S) -> SystemRef<S::System>
     where
         S: IntoSystem<Marker, In = In, Out = Out>,

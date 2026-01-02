@@ -19,7 +19,10 @@ pub mod prelude {
 
     pub use crate::query::{Query, QueryBuilder, With, Without};
 
-    pub use crate::system::{SystemParam, SystemState};
+    pub use crate::system::{
+        IntoObserverSystem, IntoSystem, ObserverSystem, On, SharedEvent, System, SystemParam,
+        SystemRef, SystemState,
+    };
 
     pub use crate::world::World;
 }

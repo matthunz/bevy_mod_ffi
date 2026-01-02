@@ -49,4 +49,21 @@ unsafe extern "C" {
         out_entity: *mut u64,
         out_entity_world_mut_ptr: *mut *mut entity_world_mut,
     ) -> bool;
+
+    pub fn bevy_world_trigger_event(
+        world: *mut world,
+        event_name_ptr: *const u8,
+        event_name_len: usize,
+        event_data_ptr: *const u8,
+        event_data_len: usize,
+    ) -> bool;
+
+    pub fn bevy_world_trigger_event_targets(
+        world: *mut world,
+        event_name_ptr: *const u8,
+        event_name_len: usize,
+        event_data_ptr: *const u8,
+        event_data_len: usize,
+        entity_bits: u64,
+    ) -> bool;
 }

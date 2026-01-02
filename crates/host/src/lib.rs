@@ -10,6 +10,8 @@ pub mod system;
 
 pub mod world;
 
+pub use bevy_mod_ffi_host_sys::SharedRegistry;
+
 pub unsafe fn run(path: impl AsRef<OsStr>, world: &mut World) -> Result<(), Box<dyn Error>> {
     let guest_lib = unsafe { Library::new(path)? };
 

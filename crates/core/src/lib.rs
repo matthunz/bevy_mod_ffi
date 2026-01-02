@@ -41,5 +41,17 @@ pub enum dyn_system_param {}
 /// Opaque type for System pointers.
 pub enum system {}
 
+/// Opaque type for Observer pointers.
+pub enum observer {}
+
+/// Opaque type for DynamicEvent pointers.
+pub enum dynamic_event {}
+
+/// Opaque type for Trigger pointers.
+pub enum trigger {}
+
 pub type RunSystemFn =
     unsafe extern "C" fn(*mut (), *const *mut dyn_system_param, usize, *const u8, *mut u8);
+
+pub type RunObserverFn =
+    unsafe extern "C" fn(*mut (), *const *mut dyn_system_param, usize, *mut trigger);

@@ -1,5 +1,3 @@
-use std::alloc;
-
 use bevy::{
     ecs::{
         prelude::*,
@@ -10,11 +8,13 @@ use bevy::{
 };
 use bevy_mod_ffi_core::{dyn_system_param, system, system_state, world, RunSystemFn};
 
+pub mod observer;
+
 pub mod param;
 
 pub type SharedSystem = Box<dyn System<In = In<SystemIn>, Out = ()>>;
 
-type SharedSystemState = SystemState<(Vec<DynSystemParam<'static, 'static>>,)>;
+pub type SharedSystemState = SystemState<(Vec<DynSystemParam<'static, 'static>>,)>;
 
 pub struct SystemIn {
     pub input_ptr: *mut u8,

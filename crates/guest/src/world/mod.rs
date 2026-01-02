@@ -1,10 +1,12 @@
 use crate::{
     component::{SharedComponent, StorageType},
     query::{QueryData, QueryFilter, QueryState},
-    system::{IntoSystem, System, SystemRef, SystemState},
+    system::{
+        IntoObserverSystem, IntoSystem, On, ParamBuilder, ParamCursor, SharedEvent, System,
+        SystemParam, SystemRef, SystemState,
+    },
 };
-use bevy_mod_ffi_core::{BundleComponent, world};
-use bevy_mod_ffi_guest_sys;
+use bevy_mod_ffi_core::{BundleComponent, dyn_system_param, trigger, world};
 use bevy_reflect::TypePath;
 use std::{
     alloc::Layout,
@@ -200,6 +202,94 @@ impl World {
 
         let entity = Entity::from_bits(entity_bits);
         unsafe { EntityWorldMut::from_ptr(entity, entity_ptr) }
+    }
+
+    pub fn add_observer<E, Marker, S>(&mut self, observer: S)
+    where
+        E: SharedEvent + 'static,
+        S: IntoObserverSystem<E, Marker>,
+        S::System: 'static,
+        <S::System as System>::Param: 'static,
+    {
+        let mut system = observer.into_system();
+        let mut builder = ParamBuilder::new(self);
+        let mut state = <<S::System as System>::Param as SystemParam>::build(self, &mut builder);
+        let state_ptr = builder.build();
+
+        let event_name = E::type_path();
+        let event_name_cstring = CString::new(event_name).unwrap();
+        let event_name_bytes = event_name_cstring.as_bytes_with_nul();
+
+        type ObserverClosure = Box<dyn FnMut(&[*mut dyn_system_param], *mut trigger)>;
+
+        let observer_boxed: ObserverClosure = Box::new(move |params, event_ptr| {
+            let mut param_cursor = ParamCursor::new(params);
+            let params = unsafe {
+                <<S::System as System>::Param as SystemParam>::get_param(
+                    &mut state,
+                    &mut param_cursor,
+                )
+            };
+
+            let event = unsafe { &*(event_ptr as *const E) };
+            system.run(On { event }, params);
+        });
+
+        let success = unsafe {
+            bevy_mod_ffi_guest_sys::system::bevy_system_state_build_on(
+                self.ptr,
+                state_ptr,
+                event_name_bytes.as_ptr(),
+                event_name_bytes.len(),
+                Box::into_raw(Box::new(observer_boxed)) as _,
+                bevy_mod_ffi_guest_sys::system::bevy_guest_run_observer,
+            )
+        };
+
+        assert!(success, "Failed to add observer for event: {}", event_name);
+    }
+
+    pub fn trigger<E: SharedEvent>(&mut self, event: E) {
+        let event_name = E::type_path();
+        let event_name_cstring = CString::new(event_name).unwrap();
+        let event_name_bytes = event_name_cstring.as_bytes_with_nul();
+        let event_bytes = bytemuck::bytes_of(&event);
+
+        let success = unsafe {
+            bevy_mod_ffi_guest_sys::world::bevy_world_trigger_event(
+                self.ptr,
+                event_name_bytes.as_ptr(),
+                event_name_bytes.len(),
+                event_bytes.as_ptr(),
+                event_bytes.len(),
+            )
+        };
+
+        assert!(success, "Failed to trigger event: {}", event_name);
+    }
+
+    pub fn trigger_targets<E: SharedEvent>(&mut self, event: E, entity: bevy_ecs::entity::Entity) {
+        let event_name = E::type_path();
+        let event_name_cstring = CString::new(event_name).unwrap();
+        let event_name_bytes = event_name_cstring.as_bytes_with_nul();
+        let event_bytes = bytemuck::bytes_of(&event);
+
+        let success = unsafe {
+            bevy_mod_ffi_guest_sys::world::bevy_world_trigger_event_targets(
+                self.ptr,
+                event_name_bytes.as_ptr(),
+                event_name_bytes.len(),
+                event_bytes.as_ptr(),
+                event_bytes.len(),
+                entity.to_bits(),
+            )
+        };
+
+        assert!(
+            success,
+            "Failed to trigger event for entity: {}",
+            event_name
+        );
     }
 }
 

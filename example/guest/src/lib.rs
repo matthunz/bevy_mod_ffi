@@ -1,5 +1,5 @@
 use bevy_mod_ffi::prelude::*;
-use bevy_mod_ffi_example_core::{Position, Velocity};
+use bevy_mod_ffi_example_core::{Damage, Position, Velocity};
 use bevy_reflect::TypePath;
 
 #[repr(C)]
@@ -29,4 +29,10 @@ fn main(world: &mut World) {
             }
         },
     );
+
+    world.add_observer(|event: On<Damage>| {
+        println!("Ouch! Amount: {}", event.amount);
+    });
+
+    world.trigger(Damage { amount: 42.0 });
 }
