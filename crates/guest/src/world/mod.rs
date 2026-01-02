@@ -1,7 +1,7 @@
 use crate::{
     component::{SharedComponent, StorageType},
     query::{QueryData, QueryFilter, QueryState},
-    system::{System, SystemRef, SystemState},
+    system::{IntoSystem, System, SystemRef, SystemState},
 };
 use bevy_mod_ffi_core::{BundleComponent, world};
 use bevy_mod_ffi_guest_sys;
@@ -150,9 +150,9 @@ impl World {
 
     pub fn run_system<Marker, S>(&mut self, system: S)
     where
-        S: System<Marker, In = (), Out = ()>,
+        S: IntoSystem<Marker, In = (), Out = ()>,
     {
-        let r = SystemState::new(self).build(system);
+        let r = SystemState::<<S::System as System>::Param>::new(self).build(system);
         self.run_system_ref(r);
     }
 

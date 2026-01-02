@@ -1,6 +1,6 @@
 use super::{ParamBuilder, SystemParam, bevy_guest_run_system};
 use crate::{
-    system::{ParamCursor, System},
+    system::{IntoSystem, ParamCursor, System},
     world::World,
 };
 use bevy_mod_ffi_core::{dyn_system_param, system, system_state};
@@ -76,18 +76,24 @@ impl<P: SystemParam> SystemState<P> {
         &mut self.state
     }
 
-    pub fn build<Marker, Out, S>(mut self, mut system: S) -> SystemRef<S>
+    pub fn build<Marker, Out, S>(mut self, system: S) -> SystemRef<S::System>
     where
-        S: System<Marker, In = (), Out = Out, Param = P>,
+        S: IntoSystem<Marker, In = (), Out = Out>,
+        S::System: System<In = (), Out = Out, Param = P>,
     {
+        let mut system = system.into_system();
         let state_ptr = self.ptr;
         self.ptr = ptr::null_mut();
 
         #[allow(clippy::type_complexity)]
         let system_boxed: Box<dyn FnMut(&[*mut dyn_system_param])> = Box::new(move |params| {
             let mut param_cursor = ParamCursor::new(params);
-            let params =
-                unsafe { <S::Param as SystemParam>::get_param(&mut self.state, &mut param_cursor) };
+            let params = unsafe {
+                <<S::System as System>::Param as SystemParam>::get_param(
+                    &mut self.state,
+                    &mut param_cursor,
+                )
+            };
             system.run((), params);
         });
 

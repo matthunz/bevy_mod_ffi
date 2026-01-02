@@ -22,7 +22,7 @@ pub unsafe extern "C" fn bevy_guest_run_system(
     f(params_slice);
 }
 
-pub trait System<Marker> {
+pub trait System {
     type In;
     type Out;
     type Param: SystemParam;
@@ -34,12 +34,25 @@ pub trait System<Marker> {
     ) -> Self::Out;
 }
 
+pub trait IntoSystem<Marker> {
+    type In;
+    type Out;
+    type System: System<In = Self::In, Out = Self::Out>;
+
+    fn into_system(self) -> Self::System;
+}
+
 pub struct InputMarker;
+
+pub struct FunctionSystem<F, Marker> {
+    f: F,
+    _marker: std::marker::PhantomData<fn() -> Marker>,
+}
 
 macro_rules! impl_system_fn {
     ($($param:ident),*) => {
         #[allow(non_snake_case, clippy::too_many_arguments)]
-        impl<Out, F, $($param: SystemParam,)*> System<fn($($param,)*) -> Out> for F
+        impl<Out, F, $($param: SystemParam,)*> System for FunctionSystem<F, fn($($param,)*) -> Out>
         where
             F: Send + Sync + 'static,
             for<'a> &'a mut F:
@@ -63,12 +76,33 @@ macro_rules! impl_system_fn {
                     f($($param,)*)
                 }
                 let ($($param,)*) = param_value;
-                call(self, $($param,)*)
+                call(&mut self.f, $($param,)*)
             }
         }
 
         #[allow(non_snake_case, clippy::too_many_arguments)]
-        impl<In, Out, Func, $($param: SystemParam,)*> System<(InputMarker, fn(In, $($param,)*) -> Out)> for Func
+        impl<Out, F, $($param: SystemParam,)*> IntoSystem<fn($($param,)*) -> Out> for F
+        where
+            F: Send + Sync + 'static,
+            for<'a> &'a mut F:
+                FnMut($($param,)*) -> Out +
+                FnMut($($param::Item<'_, '_>,)*) -> Out,
+            Out: 'static,
+        {
+            type In = ();
+            type Out = Out;
+            type System = FunctionSystem<F, fn($($param,)*) -> Out>;
+
+            fn into_system(self) -> Self::System {
+                FunctionSystem {
+                    f: self,
+                    _marker: std::marker::PhantomData,
+                }
+            }
+        }
+
+        #[allow(non_snake_case, clippy::too_many_arguments)]
+        impl<In, Out, Func, $($param: SystemParam,)*> System for FunctionSystem<Func, (InputMarker, fn(In, $($param,)*) -> Out)>
         where
             Func: Send + Sync + 'static,
             for<'a> &'a mut Func:
@@ -94,7 +128,29 @@ macro_rules! impl_system_fn {
                     f(input, $($param,)*)
                 }
                 let ($($param,)*) = param_value;
-                call(self, input, $($param,)*)
+                call(&mut self.f, input, $($param,)*)
+            }
+        }
+
+        #[allow(non_snake_case, clippy::too_many_arguments)]
+        impl<In, Out, Func, $($param: SystemParam,)*> IntoSystem<(InputMarker, fn(In, $($param,)*) -> Out)> for Func
+        where
+            Func: Send + Sync + 'static,
+            for<'a> &'a mut Func:
+                FnMut(In, $($param,)*) -> Out +
+                FnMut(In, $($param::Item<'_, '_>,)*) -> Out,
+            In: 'static,
+            Out: 'static,
+        {
+            type In = In;
+            type Out = Out;
+            type System = FunctionSystem<Func, (InputMarker, fn(In, $($param,)*) -> Out)>;
+
+            fn into_system(self) -> Self::System {
+                FunctionSystem {
+                    f: self,
+                    _marker: std::marker::PhantomData,
+                }
             }
         }
     };
