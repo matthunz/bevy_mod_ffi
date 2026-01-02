@@ -1,10 +1,12 @@
 use crate::system::{IntoSystem, System, SystemInput, SystemParam};
-use bevy_ecs::entity::Entity;
+use bevy_ecs::{entity::Entity, event::Event};
 use bevy_reflect::TypePath;
 use bytemuck::Pod;
 use std::ops::Deref;
 
-pub trait SharedEvent: Pod + TypePath + Sized {}
+pub trait SharedEvent: Event + Pod + TypePath {}
+
+impl<E: Event + Pod + TypePath> SharedEvent for E {}
 
 pub struct OnEntity<'a, E> {
     pub entity: Entity,

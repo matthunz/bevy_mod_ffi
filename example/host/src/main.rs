@@ -21,9 +21,5 @@ fn main() {
         std::env::consts::DLL_EXTENSION
     );
 
-    let lib = unsafe { bevy_mod_ffi::run(path, app.world_mut()).unwrap() };
-
-    app.world_mut().trigger(Damage { amount: 2. });
-
-    lib.unload(app.world_mut());
+    unsafe { bevy_mod_ffi::run(path, app.world_mut()).unwrap() };
 }

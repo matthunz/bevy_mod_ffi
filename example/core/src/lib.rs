@@ -26,5 +26,3 @@ impl SharedComponent for Velocity {}
 pub struct Damage {
     pub amount: f32,
 }
-
-impl SharedEvent for Damage {}
