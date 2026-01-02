@@ -40,3 +40,6 @@ pub enum dyn_system_param {}
 
 /// Opaque type for System pointers.
 pub enum system {}
+
+pub type RunSystemFn =
+    unsafe extern "C" fn(*mut (), *const *mut dyn_system_param, usize, *const u8, *mut u8);

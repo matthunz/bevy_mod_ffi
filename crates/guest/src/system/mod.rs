@@ -1,5 +1,5 @@
 use bevy_mod_ffi_core::dyn_system_param;
-use std::slice;
+use std::{marker::PhantomData, slice};
 
 mod builder;
 pub use builder::{ParamBuilder, ParamCursor};
@@ -16,10 +16,14 @@ pub unsafe extern "C" fn bevy_guest_run_system(
     f_ptr: *mut (),
     params: *const *mut dyn_system_param,
     params_len: usize,
+    input_ptr: *const u8,
+    output_ptr: *mut u8,
 ) {
-    let f = unsafe { &mut *(f_ptr as *mut Box<dyn FnMut(&[*mut dyn_system_param])>) };
+    type SystemClosure = Box<dyn FnMut(&[*mut dyn_system_param], *const u8, *mut u8)>;
+
+    let f = unsafe { &mut *(f_ptr as *mut SystemClosure) };
     let params_slice = unsafe { slice::from_raw_parts(params, params_len) };
-    f(params_slice);
+    f(params_slice, input_ptr, output_ptr);
 }
 
 pub trait System {
@@ -96,7 +100,7 @@ macro_rules! impl_system_fn {
             fn into_system(self) -> Self::System {
                 FunctionSystem {
                     f: self,
-                    _marker: std::marker::PhantomData,
+                    _marker: PhantomData,
                 }
             }
         }
@@ -149,7 +153,7 @@ macro_rules! impl_system_fn {
             fn into_system(self) -> Self::System {
                 FunctionSystem {
                     f: self,
-                    _marker: std::marker::PhantomData,
+                    _marker: PhantomData,
                 }
             }
         }

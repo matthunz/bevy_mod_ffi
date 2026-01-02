@@ -1,4 +1,4 @@
-use crate::DynamicComponentRegistry;
+use crate::{DynamicComponentRegistry, SharedSystem, SystemIn};
 use bevy::{
     ecs::{
         component::{ComponentCloneBehavior, ComponentDescriptor, ComponentId, StorageType},
@@ -101,11 +101,20 @@ pub unsafe extern "C" fn bevy_world_get_component_id(
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn bevy_world_run_system(world_ptr: *mut world, system_ptr: *mut system) {
+pub unsafe extern "C" fn bevy_world_run_system(
+    world_ptr: *mut world,
+    system_ptr: *mut system,
+    input_ptr: *mut u8,
+    output_ptr: *mut u8,
+) {
     let world = unsafe { &mut *(world_ptr as *mut World) };
-    let system = unsafe { &mut *(system_ptr as *mut Box<dyn System<In = (), Out = ()>>) };
+    let system = unsafe { &mut *(system_ptr as *mut SharedSystem) };
 
-    system.run((), world).unwrap();
+    let input = SystemIn {
+        input_ptr,
+        output_ptr,
+    };
+    system.run(input, world).unwrap();
 }
 
 #[unsafe(no_mangle)]

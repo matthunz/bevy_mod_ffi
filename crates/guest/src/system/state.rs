@@ -5,7 +5,8 @@ use crate::{
 };
 use bevy_mod_ffi_core::{dyn_system_param, system, system_state};
 use bevy_mod_ffi_guest_sys;
-use std::{marker::PhantomData, ptr, slice};
+use bytemuck::Pod;
+use std::{marker::PhantomData, mem, ptr, slice};
 
 pub struct SystemState<P: SystemParam> {
     pub(crate) ptr: *mut system_state,
@@ -13,7 +14,7 @@ pub struct SystemState<P: SystemParam> {
     _marker: PhantomData<fn() -> P>,
 }
 
-impl<P: SystemParam> SystemState<P> {
+impl<P: SystemParam + 'static> SystemState<P> {
     pub fn new(world: &mut World) -> Self {
         let mut builder = ParamBuilder::new(world);
         let state = P::build(world, &mut builder);
@@ -76,17 +77,25 @@ impl<P: SystemParam> SystemState<P> {
         &mut self.state
     }
 
-    pub fn build<Marker, Out, S>(mut self, system: S) -> SystemRef<S::System>
+    /// Build a system with input and output support.
+    ///
+    /// The input type `In` and output type `Out` must implement `FfiSafe` to be
+    /// safely passed across the FFI boundary as raw bytes.
+    pub fn build<Marker, In, Out, S>(mut self, system: S) -> SystemRef<S::System>
     where
-        S: IntoSystem<Marker, In = (), Out = Out>,
-        S::System: System<In = (), Out = Out, Param = P>,
+        S: IntoSystem<Marker, In = In, Out = Out>,
+        S::System: System<In = In, Out = Out, Param = P> + 'static,
+        In: Pod,
+        Out: Pod,
     {
         let mut system = system.into_system();
         let state_ptr = self.ptr;
-        self.ptr = ptr::null_mut();
 
-        #[allow(clippy::type_complexity)]
-        let system_boxed: Box<dyn FnMut(&[*mut dyn_system_param])> = Box::new(move |params| {
+        let output_size = mem::size_of::<Out>();
+
+        type SystemClosure = Box<dyn FnMut(&[*mut dyn_system_param], *const u8, *mut u8)>;
+
+        let system_boxed: SystemClosure = Box::new(move |params, input_ptr, output_ptr| {
             let mut param_cursor = ParamCursor::new(params);
             let params = unsafe {
                 <<S::System as System>::Param as SystemParam>::get_param(
@@ -94,7 +103,14 @@ impl<P: SystemParam> SystemState<P> {
                     &mut param_cursor,
                 )
             };
-            system.run((), params);
+
+            let input = unsafe { *(input_ptr as *const In) };
+            let output = system.run(input, params);
+
+            let output_bytes = bytemuck::bytes_of(&output);
+            unsafe {
+                ptr::copy_nonoverlapping(output_bytes.as_ptr(), output_ptr, output_size);
+            }
         });
 
         let mut out_ptr: *mut system = ptr::null_mut();

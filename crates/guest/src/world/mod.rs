@@ -148,18 +148,36 @@ impl World {
         QueryState::new(self)
     }
 
-    pub fn run_system<Marker, S>(&mut self, system: S)
+    pub fn run_system<Marker, In, Out, S>(&mut self, input: In, system: S) -> Out
     where
-        S: IntoSystem<Marker, In = (), Out = ()>,
+        S: IntoSystem<Marker, In = In, Out = Out>,
+        S::System: 'static,
+        <S::System as System>::Param: 'static,
+        In: Pod,
+        Out: Pod,
     {
         let r = SystemState::<<S::System as System>::Param>::new(self).build(system);
-        self.run_system_ref(r);
+        self.run_system_ref(input, r)
     }
 
-    pub fn run_system_ref<S>(&mut self, system: SystemRef<S>) {
+    pub fn run_system_ref<In, Out, S>(&mut self, input: In, system: SystemRef<S>) -> Out
+    where
+        In: Pod,
+        Out: Pod,
+    {
+        let input_bytes = bytemuck::bytes_of(&input);
+        let mut output = bytemuck::zeroed_box::<Out>();
+
         unsafe {
-            bevy_mod_ffi_guest_sys::world::bevy_world_run_system(self.ptr, system.ptr as *mut _)
+            bevy_mod_ffi_guest_sys::world::bevy_world_run_system(
+                self.ptr,
+                system.ptr as *mut _,
+                input_bytes.as_ptr(),
+                &mut *output as *mut _ as _,
+            )
         };
+
+        *output
     }
 
     pub fn spawn<B: Bundle>(&mut self, bundle: B) -> EntityWorldMut<'_> {

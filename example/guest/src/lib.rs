@@ -19,6 +19,7 @@ fn main(world: &mut World) {
     ));
 
     world.run_system(
+        (),
         |mut query: Query<(Entity, &mut Position, &Velocity), With<Zombie>>| {
             for (entity, pos, vel) in query.iter_mut() {
                 dbg!(entity, &pos, vel);

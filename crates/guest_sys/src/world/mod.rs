@@ -25,7 +25,12 @@ unsafe extern "C" {
         out_id: *mut usize,
     ) -> bool;
 
-    pub fn bevy_world_run_system(world_ptr: *mut world, system_ptr: *mut system);
+    pub fn bevy_world_run_system(
+        world_ptr: *mut world,
+        system_ptr: *mut system,
+        input_ptr: *const u8,
+        output_ptr: *mut u8,
+    );
 
     pub fn bevy_world_register_component(
         world: *mut world,
