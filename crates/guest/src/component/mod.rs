@@ -7,6 +7,6 @@ pub enum StorageType {
     SparseSet,
 }
 
-pub trait Component: Pod + TypePath + Sized {
+pub trait SharedComponent: Pod + TypePath + Sized {
     const STORAGE_TYPE: StorageType = StorageType::Table;
 }

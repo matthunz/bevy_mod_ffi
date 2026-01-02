@@ -1,12 +1,16 @@
 use crate::{
-    component::{Component, StorageType},
+    component::{SharedComponent, StorageType},
     query::{QueryData, QueryFilter, QueryState},
     system::{System, SystemRef, SystemState},
 };
-use bevy_mod_ffi_core::world;
+use bevy_mod_ffi_core::{BundleComponent, world};
 use bevy_mod_ffi_guest_sys;
 use bevy_reflect::TypePath;
-use std::{alloc::Layout, ffi::CString, ptr::NonNull};
+use std::{
+    alloc::Layout,
+    ffi::CString,
+    ptr::{self, NonNull},
+};
 
 pub use bevy_ecs::{
     component::ComponentId,
@@ -16,7 +20,7 @@ pub use bevy_ecs::{
 pub use bytemuck::{Pod, Zeroable};
 
 mod entity;
-pub use entity::FilteredEntityMut;
+pub use entity::{EntityWorldMut, FilteredEntityMut};
 
 pub struct World {
     pub(crate) ptr: *mut world,
@@ -28,7 +32,7 @@ impl World {
         Self { ptr }
     }
 
-    pub fn register_component<C: Component>(&mut self) -> ComponentId {
+    pub fn register_component<C: SharedComponent>(&mut self) -> ComponentId {
         let name = C::type_path();
 
         let layout = Layout::new::<C>();
@@ -157,4 +161,75 @@ impl World {
             bevy_mod_ffi_guest_sys::world::bevy_world_run_system(self.ptr, system.ptr as *mut _)
         };
     }
+
+    pub fn spawn<B: Bundle>(&mut self, bundle: B) -> EntityWorldMut<'_> {
+        let mut components = Vec::new();
+        let mut storage = Vec::new();
+        bundle.bundle(self, &mut components, &mut storage);
+
+        let mut entity_bits: u64 = 0;
+        let mut entity_ptr = ptr::null_mut();
+        let success = unsafe {
+            bevy_mod_ffi_guest_sys::world::bevy_world_spawn(
+                self.ptr,
+                components.as_ptr(),
+                components.len(),
+                &mut entity_bits,
+                &mut entity_ptr,
+            )
+        };
+        assert!(success, "Failed to spawn entity");
+
+        let entity = Entity::from_bits(entity_bits);
+        unsafe { EntityWorldMut::from_ptr(entity, entity_ptr) }
+    }
 }
+
+pub trait Bundle {
+    fn bundle(
+        self,
+        world: &mut World,
+        components: &mut Vec<BundleComponent>,
+        storage: &mut Vec<Box<[u8]>>,
+    );
+}
+
+impl<C: SharedComponent + Pod> Bundle for C {
+    fn bundle(
+        self,
+        world: &mut World,
+        components: &mut Vec<BundleComponent>,
+        storage: &mut Vec<Box<[u8]>>,
+    ) {
+        let component_id = world.get_component_id::<C>().unwrap();
+        let bytes = bytemuck::bytes_of(&self).to_vec().into_boxed_slice();
+        let ptr = bytes.as_ptr();
+        storage.push(bytes);
+        components.push(BundleComponent {
+            component_id: component_id.index(),
+            ptr,
+        });
+    }
+}
+
+macro_rules! impl_bundle_tuple {
+    ($($item:ident),+) => {
+        impl<$($item: Bundle),+> Bundle for ($($item,)+) {
+            fn bundle(self, world: &mut World, components: &mut Vec<BundleComponent>, storage: &mut Vec<Box<[u8]>>) {
+                #[allow(non_snake_case)]
+                let ($($item,)+) = self;
+                $(
+                    $item.bundle(world, components, storage);
+                )+
+            }
+        }
+    };
+}
+
+impl_bundle_tuple!(B0, B1);
+impl_bundle_tuple!(B0, B1, B2);
+impl_bundle_tuple!(B0, B1, B2, B3);
+impl_bundle_tuple!(B0, B1, B2, B3, B4);
+impl_bundle_tuple!(B0, B1, B2, B3, B4, B5);
+impl_bundle_tuple!(B0, B1, B2, B3, B4, B5, B6);
+impl_bundle_tuple!(B0, B1, B2, B3, B4, B5, B6, B7);

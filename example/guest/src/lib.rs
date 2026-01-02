@@ -1,33 +1,31 @@
 use bevy_mod_ffi::prelude::*;
-use bevy_mod_ffi_example_core::{ExampleResource, Position, Velocity};
+use bevy_mod_ffi_example_core::{Position, Velocity};
 use bevy_reflect::TypePath;
 
 #[repr(C)]
-#[derive(Clone, Copy, Zeroable, Pod, TypePath)]
-struct Health {
-    value: f32,
-}
+#[derive(Clone, Copy, Debug, Zeroable, Pod, TypePath)]
+struct Zombie;
 
-impl Component for Health {}
+impl SharedComponent for Zombie {}
 
 #[bevy_mod_ffi::main]
 fn main(world: &mut World) {
-    let r = world.get_resource::<ExampleResource>().unwrap();
-    dbg!(r);
+    world.register_component::<Zombie>();
 
-    let mut query = world.query::<(Entity, &Position, &mut Velocity)>();
-    for (entity, pos, vel) in query.iter_mut(world) {
-        dbg!(entity, pos, &vel);
+    world.spawn((
+        Zombie,
+        Position { x: 0.0, y: 0.0 },
+        Velocity { x: 1.0, y: 1.0 },
+    ));
 
-        vel.x *= 2.0;
-        vel.y *= 2.0;
-    }
+    world.run_system(
+        |mut query: Query<(Entity, &mut Position, &Velocity), With<Zombie>>| {
+            for (entity, pos, vel) in query.iter_mut() {
+                dbg!(entity, &pos, vel);
 
-    world.run_system(|mut query: Query<&Velocity>| {
-        for x in query.iter_mut() {
-            dbg!(x);
-        }
-    });
-
-    world.register_component::<Health>();
+                pos.x += vel.x;
+                pos.y += vel.y;
+            }
+        },
+    );
 }

@@ -36,4 +36,12 @@ unsafe extern "C" {
         is_table: bool,
         out_id: *mut usize,
     ) -> bool;
+
+    pub fn bevy_world_spawn(
+        world: *mut world,
+        components_ptr: *const BundleComponent,
+        component_len: usize,
+        out_entity: *mut u64,
+        out_entity_world_mut_ptr: *mut *mut entity_world_mut,
+    ) -> bool;
 }

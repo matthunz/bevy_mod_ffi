@@ -1,6 +1,8 @@
 use bevy_mod_ffi_core::*;
 
 unsafe extern "C" {
+    pub fn bevy_world_entity_mut_drop(entity: *mut entity_world_mut);
+
     pub fn bevy_filtered_entity_mut_get_component(
         entity: *mut filtered_entity_mut,
         component_id: usize,

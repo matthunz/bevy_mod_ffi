@@ -1,12 +1,20 @@
+use crate::DynamicComponentRegistry;
 use bevy::{
     ecs::{
         component::{ComponentCloneBehavior, ComponentDescriptor, ComponentId, StorageType},
         world::World,
     },
     prelude::*,
+    ptr::OwningPtr,
 };
-use bevy_mod_ffi_core::{system, world};
-use std::{alloc::Layout, any::TypeId, ffi::CStr, slice};
+use bevy_mod_ffi_core::{entity_world_mut, system, world, BundleComponent};
+use std::{
+    alloc::{self, Layout},
+    any::TypeId,
+    ffi::CStr,
+    ptr::{self, NonNull},
+    slice,
+};
 
 pub mod entity;
 
@@ -63,12 +71,25 @@ pub unsafe extern "C" fn bevy_world_get_component_id(
     type_path_len: usize,
     out_id: *mut usize,
 ) -> bool {
-    let world = unsafe { &*(world_ptr as *const World) };
+    let world = unsafe { &mut *(world_ptr as *mut World) };
 
-    let Some(type_id) = get_type_id(type_path_ptr, type_path_len, world) else {
-        return false;
-    };
-    let Some(component_id) = world.components().get_id(type_id) else {
+    let type_path_bytes = unsafe { slice::from_raw_parts(type_path_ptr, type_path_len) };
+    let type_path = CStr::from_bytes_with_nul(type_path_bytes)
+        .unwrap()
+        .to_str()
+        .unwrap();
+
+    let component_id = if let Some(type_id) = get_type_id(type_path_ptr, type_path_len, world) {
+        let Some(component_id) = world.components().get_id(type_id) else {
+            return false;
+        };
+        component_id
+    } else if let Some(registry) = world.get_resource::<DynamicComponentRegistry>() {
+        let Some(component_id) = registry.type_path_to_id.get(type_path) else {
+            return false;
+        };
+        *component_id
+    } else {
         return false;
     };
 
@@ -116,18 +137,23 @@ pub unsafe extern "C" fn bevy_world_register_component(
     } else {
         StorageType::SparseSet
     };
+
     let descriptor = unsafe {
         ComponentDescriptor::new_with_layout(
-            name,
+            name.clone(),
             storage_type,
             layout,
-            None,
+            None, // TODO drop?
             true,
-            ComponentCloneBehavior::Default,
+            ComponentCloneBehavior::Ignore,
         )
     };
 
     let id = world.register_component_with_descriptor(descriptor);
+
+    let mut registry = world.resource_mut::<DynamicComponentRegistry>();
+    registry.type_path_to_id.insert(name, id);
+
     unsafe {
         *out_id = id.index();
     }
@@ -136,16 +162,41 @@ pub unsafe extern "C" fn bevy_world_register_component(
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn bevy_world_spawn_empty(
+pub unsafe extern "C" fn bevy_world_spawn(
     world_ptr: *mut world,
+    components_ptr: *const BundleComponent,
+    component_len: usize,
     out_entity: *mut u64,
+    out_entity_world_mut_ptr: *mut *mut entity_world_mut,
 ) -> bool {
     let world = unsafe { &mut *(world_ptr as *mut World) };
+    let components = unsafe { slice::from_raw_parts(components_ptr, component_len) };
 
-    let entity = world.spawn_empty().id();
+    let mut components_data = Vec::new();
+    for component in components {
+        let component_id = ComponentId::new(component.component_id);
+        let component_info = world.components().get_info(component_id).unwrap();
+        let layout = component_info.layout();
+
+        let buffer = alloc::alloc(layout);
+        unsafe {
+            ptr::copy(component.ptr, buffer, layout.size());
+        }
+
+        components_data.push((component_id, buffer));
+    }
+
+    let mut entity = world.spawn_empty();
+    for (component_id, buffer) in components_data {
+        unsafe {
+            let owning_ptr = OwningPtr::new(NonNull::new_unchecked(buffer));
+            entity.insert_by_id(component_id, owning_ptr);
+        }
+    }
 
     unsafe {
-        *out_entity = entity.to_bits();
+        *out_entity = entity.id().to_bits();
+        *out_entity_world_mut_ptr = Box::into_raw(Box::new(entity)) as *mut entity_world_mut;
     }
 
     true

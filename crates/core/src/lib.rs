@@ -1,5 +1,13 @@
 #![allow(non_camel_case_types)]
 
+/// A component to be inserted into an entity.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct BundleComponent {
+    pub component_id: usize,
+    pub ptr: *const u8,
+}
+
 /// Opaque type for World pointers.
 pub enum world {}
 
@@ -14,6 +22,9 @@ pub enum query {}
 
 /// Opaque type for QueryIter pointers.
 pub enum query_iter {}
+
+/// Opaque type for EntityWorldMut pointers.
+pub enum entity_world_mut {}
 
 /// Opaque type for FilteredEntityMut pointers.
 pub enum filtered_entity_mut {}

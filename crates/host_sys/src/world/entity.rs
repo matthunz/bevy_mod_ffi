@@ -1,7 +1,15 @@
-use bevy::{ecs::component::ComponentId, ecs::world::FilteredEntityMut};
-use bevy_mod_ffi_core::filtered_entity_mut;
+use bevy::ecs::{
+    component::ComponentId,
+    world::{EntityWorldMut, FilteredEntityMut},
+};
+use bevy_mod_ffi_core::{entity_world_mut, filtered_entity_mut};
 
 type SharedEntityRef = FilteredEntityMut<'static, 'static>;
+
+#[unsafe(no_mangle)]
+unsafe extern "C" fn bevy_world_entity_mut_drop(entity_ptr: *mut entity_world_mut) {
+    let _ = unsafe { Box::from_raw(entity_ptr as *mut EntityWorldMut) };
+}
 
 #[unsafe(no_mangle)]
 unsafe extern "C" fn bevy_filtered_entity_mut_get_component(

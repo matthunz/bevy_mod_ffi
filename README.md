@@ -9,46 +9,51 @@
 #### Client
 ```rs
 use bevy_mod_ffi::prelude::*;
-use bevy_mod_ffi_example_core::{ExampleResource, Position, Velocity};
+use bevy_mod_ffi_example_core::{Position, Velocity};
+use bevy_reflect::TypePath;
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Zeroable, Pod, TypePath)]
+struct Zombie;
+
+impl SharedComponent for Zombie {}
 
 #[bevy_mod_ffi::main]
 fn main(world: &mut World) {
-    let r = world.get_resource::<ExampleResource>().unwrap();
-    dbg!(r);
+    world.register_component::<Zombie>();
 
-    let mut query = world.query::<(Entity, &Position, &mut Velocity)>();
-    for (entity, pos, vel) in query.iter_mut(world) {
-        dbg!(entity, pos, &vel);
+    world.spawn((
+        Zombie,
+        Position { x: 0.0, y: 0.0 },
+        Velocity { x: 1.0, y: 1.0 },
+    ));
 
-        vel.x *= 2.0;
-        vel.y *= 2.0;
-    }
+    world.run_system(
+        |mut query: Query<(Entity, &mut Position, &Velocity), With<Zombie>>| {
+            for (entity, pos, vel) in query.iter_mut() {
+                dbg!(entity, &pos, vel);
 
-    world.run_system(|mut query: Query<&Velocity>| {
-        for x in query.iter_mut() {
-            dbg!(x);
-        }
-    });
+                pos.x += vel.x;
+                pos.y += vel.y;
+            }
+        },
+    );
 }
 ```
 
 #### Host
 ```rs
 use bevy::prelude::*;
-use bevy_mod_ffi_example_core::{ExampleResource, Position, Velocity};
+use bevy_mod_ffi::DynamicComponentRegistry;
+use bevy_mod_ffi_example_core::{Position, Velocity};
 
 fn main() {
     let mut app = App::new();
-    app.add_plugins(MinimalPlugins);
-    app.init_resource::<AppTypeRegistry>();
-    app.register_type::<ExampleResource>();
-    app.register_type::<Position>();
-    app.register_type::<Velocity>();
-
-    app.insert_resource(ExampleResource { value: 42 });
-    app.world_mut()
-        .spawn((Position { x: 1.0, y: 2.0 }, Velocity { x: 0.5, y: 0.5 }));
-
+    app.add_plugins(MinimalPlugins)
+        .init_resource::<AppTypeRegistry>()
+        .init_resource::<DynamicComponentRegistry>();
+    app.world_mut().register_component::<Position>();
+    app.world_mut().register_component::<Velocity>();
     app.update();
 
     let guest_lib_path = if cfg!(windows) {

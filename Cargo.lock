@@ -982,6 +982,7 @@ name = "bevy_mod_ffi_example_core"
 version = "0.1.0"
 dependencies = [
  "bevy_ecs",
+ "bevy_mod_ffi_guest",
  "bevy_reflect",
  "bytemuck",
 ]

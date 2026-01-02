@@ -1,4 +1,4 @@
-extern crate bevy_mod_ffi_host_sys;
+pub use bevy_mod_ffi_host_sys as sys;
 
 use bevy::ecs::world::World;
 use bevy_mod_ffi_core::dyn_system_param;
