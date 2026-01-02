@@ -6,7 +6,10 @@ mod builder;
 pub use builder::{ParamBuilder, ParamCursor};
 
 mod observer;
-pub use observer::{IntoObserverSystem, ObserverSystem, On, SharedEvent};
+pub use observer::{
+    EntityObserverSystem, IntoEntityObserverSystem, IntoObserverSystem, ObserverSystem, On,
+    OnEntity, SharedEvent,
+};
 
 mod param;
 pub use param::SystemParam;

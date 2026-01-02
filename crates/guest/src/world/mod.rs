@@ -201,7 +201,7 @@ impl World {
         assert!(success, "Failed to spawn entity");
 
         let entity = Entity::from_bits(entity_bits);
-        unsafe { EntityWorldMut::from_ptr(entity, entity_ptr) }
+        unsafe { EntityWorldMut::from_ptr(entity, entity_ptr, self) }
     }
 
     pub fn add_observer<E, Marker, S>(&mut self, observer: S)

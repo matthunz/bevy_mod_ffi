@@ -8,7 +8,7 @@ pub mod query;
 pub use query::*;
 
 pub mod system;
-use system::observer::{Observable, TypedEventOps};
+use system::observer::{Observable, ObservableOf};
 pub use system::*;
 
 pub mod world;
@@ -20,7 +20,7 @@ pub struct LibraryId(pub u64);
 #[derive(Resource, Default)]
 pub struct SharedRegistry {
     type_path_to_id: HashMap<String, ComponentId>,
-    events: HashMap<&'static str, Box<dyn Observable>>,
+    pub events: HashMap<&'static str, Box<dyn Observable>>,
     library_observers: HashMap<LibraryId, Vec<Entity>>,
     current_library_id: Option<LibraryId>,
     next_library_id: u64,
@@ -63,7 +63,7 @@ impl SharedRegistry {
         for<'a> E::Trigger<'a>: Default,
     {
         self.events
-            .insert(E::type_path(), Box::new(TypedEventOps::<E>::new()));
+            .insert(E::type_path(), Box::new(ObservableOf::<E>::new()));
     }
 
     pub fn is_event_registered(&self, name: &str) -> bool {

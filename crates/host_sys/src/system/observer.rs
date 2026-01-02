@@ -11,12 +11,31 @@ use bevy::{
     prelude::*,
 };
 use bevy_mod_ffi_core::{dyn_system_param, system_state, world, RunObserverFn};
-use std::{alloc::Layout, any::Any, ffi::CStr, marker::PhantomData, slice, sync::Arc};
+use std::{any::Any, ffi::CStr, marker::PhantomData, slice, sync::Arc};
 
 type SharedSystemState = SystemState<(Vec<DynSystemParam<'static, 'static>>,)>;
 
 #[derive(Clone)]
 pub struct LibraryHandle(pub Arc<dyn Any + Send + Sync>);
+#[derive(Event, Clone, Copy)]
+pub struct EntityEventWrapper<E> {
+    pub entity: Entity,
+    pub inner: E,
+}
+
+impl<E> bevy::ecs::event::EntityEvent for EntityEventWrapper<E>
+where
+    E: Event + Clone + Copy,
+    for<'a> E::Trigger<'a>: Default,
+{
+    fn event_target(&self) -> Entity {
+        self.entity
+    }
+
+    fn event_target_mut(&mut self) -> &mut Entity {
+        &mut self.entity
+    }
+}
 
 pub trait Observable: Send + Sync + 'static {
     fn type_path(&self) -> &'static str;
@@ -30,18 +49,26 @@ pub trait Observable: Send + Sync + 'static {
         library_handle: Option<LibraryHandle>,
     ) -> Entity;
 
+    fn add_entity_observer_with_state(
+        &self,
+        world: &mut World,
+        entity: Entity,
+        state: Box<SharedSystemState>,
+        f_ptr: usize,
+        run_observer_fn: RunObserverFn,
+        library_handle: Option<LibraryHandle>,
+    ) -> Entity;
+
     fn trigger(&self, world: &mut World, event_data: &[u8]);
 
     fn trigger_for_entity(&self, world: &mut World, event_data: &[u8], entity: Entity);
-
-    fn layout(&self) -> Layout;
 }
 
-pub struct TypedEventOps<E> {
+pub struct ObservableOf<E> {
     _marker: PhantomData<E>,
 }
 
-impl<E> TypedEventOps<E> {
+impl<E> ObservableOf<E> {
     pub fn new() -> Self {
         Self {
             _marker: PhantomData,
@@ -49,13 +76,13 @@ impl<E> TypedEventOps<E> {
     }
 }
 
-impl<E> Default for TypedEventOps<E> {
+impl<E> Default for ObservableOf<E> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<E: Event + Clone + Copy + bevy::reflect::TypePath> Observable for TypedEventOps<E>
+impl<E: Event + Clone + Copy + bevy::reflect::TypePath> Observable for ObservableOf<E>
 where
     for<'a> E::Trigger<'a>: Default,
 {
@@ -98,13 +125,42 @@ where
         world.trigger(event);
     }
 
-    fn trigger_for_entity(&self, world: &mut World, event_data: &[u8], _entity: Entity) {
-        let event = unsafe { *(event_data.as_ptr() as *const E) };
-        world.trigger(event);
+    fn add_entity_observer_with_state(
+        &self,
+        world: &mut World,
+        entity: Entity,
+        state: Box<SharedSystemState>,
+        f_ptr: usize,
+        run_observer_fn: RunObserverFn,
+        library_handle: Option<LibraryHandle>,
+    ) -> Entity {
+        let observer_system = state.build_any_system(
+            move |on: On<EntityEventWrapper<E>>, params: Vec<DynSystemParam>| {
+                let _ = &library_handle;
+
+                let mut param_ptrs: Vec<*mut dyn_system_param> = Vec::new();
+                for param in params {
+                    let boxed = Box::new(param);
+                    param_ptrs.push(Box::into_raw(boxed) as *mut dyn_system_param);
+                }
+                let len = param_ptrs.len();
+                let pointers_ptr = param_ptrs.as_ptr();
+
+                let event_ptr = &on.event().inner as *const E as *const u8;
+
+                unsafe {
+                    run_observer_fn(f_ptr as _, pointers_ptr, len, event_ptr as _);
+                };
+            },
+        );
+
+        world.entity_mut(entity).observe(observer_system).id()
     }
 
-    fn layout(&self) -> Layout {
-        Layout::new::<E>()
+    fn trigger_for_entity(&self, world: &mut World, event_data: &[u8], entity: Entity) {
+        let inner = unsafe { *(event_data.as_ptr() as *const E) };
+        let wrapped = EntityEventWrapper { entity, inner };
+        world.trigger(wrapped);
     }
 }
 
