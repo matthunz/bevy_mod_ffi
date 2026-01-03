@@ -7,4 +7,4 @@ pub use bevy_mod_ffi_guest::*;
 pub use bevy_mod_ffi_host::{LibraryId, LoadedLibrary, SharedRegistry, run};
 
 #[cfg(feature = "macros")]
-pub use bevy_mod_ffi_macros::*;
+pub use bevy_mod_ffi_macros::{SharedComponent, main};

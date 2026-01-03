@@ -40,7 +40,12 @@ unsafe extern "C" {
         name_len: usize,
         size: usize,
         align: usize,
-        is_table: bool,
+        is_table: u8,
+        on_add: Option<ComponentHookFn>,
+        on_insert: Option<ComponentHookFn>,
+        on_replace: Option<ComponentHookFn>,
+        on_remove: Option<ComponentHookFn>,
+        on_despawn: Option<ComponentHookFn>,
         out_id: *mut usize,
     ) -> bool;
 

@@ -10,7 +10,10 @@ pub struct Position {
     pub y: f32,
 }
 
-impl SharedComponent for Position {}
+impl SharedComponent for Position {
+    type Mutability = Mutable;
+    const STORAGE_TYPE: StorageType = StorageType::Table;
+}
 
 #[derive(Component, Clone, Copy, Debug, Pod, Zeroable, Reflect)]
 #[repr(C)]
@@ -19,7 +22,10 @@ pub struct Velocity {
     pub y: f32,
 }
 
-impl SharedComponent for Velocity {}
+impl SharedComponent for Velocity {
+    type Mutability = Mutable;
+    const STORAGE_TYPE: StorageType = StorageType::Table;
+}
 
 #[derive(Event, Clone, Copy, Debug, Pod, Zeroable, Reflect)]
 #[repr(C)]

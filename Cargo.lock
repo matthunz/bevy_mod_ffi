@@ -1014,6 +1014,7 @@ dependencies = [
  "bevy_ecs",
  "bevy_mod_ffi_core",
  "bevy_mod_ffi_guest_sys",
+ "bevy_mod_ffi_macros",
  "bevy_reflect",
  "bytemuck",
 ]

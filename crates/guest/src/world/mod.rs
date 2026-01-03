@@ -1,12 +1,14 @@
 use crate::{
-    component::{SharedComponent, StorageType},
+    component::{HookContext, SharedComponent, StorageType},
     query::{QueryData, QueryFilter, QueryState},
     system::{
         IntoObserverSystem, IntoSystem, On, ParamBuilder, ParamCursor, SharedEvent, System,
         SystemParam, SystemRef, SystemState,
     },
 };
-use bevy_mod_ffi_core::{BundleComponent, dyn_system_param, trigger, world};
+use bevy_mod_ffi_core::{
+    BundleComponent, ComponentHookFn, deferred_world, dyn_system_param, trigger, world,
+};
 use bevy_reflect::TypePath;
 use std::{
     alloc::Layout,
@@ -27,6 +29,32 @@ pub use entity::{EntityWorldMut, FilteredEntityMut};
 mod deferred;
 pub use deferred::DeferredWorld;
 
+macro_rules! make_hook_wrapper {
+    ($name:ident, $hook_getter:expr) => {
+        unsafe extern "C" fn $name<C: SharedComponent>(
+            deferred_ptr: *mut deferred_world,
+            entity_bits: u64,
+            component_id: usize,
+        ) {
+            if let Some(hook) = $hook_getter {
+                let deferred = unsafe { DeferredWorld::from_ptr(deferred_ptr) };
+                let context = HookContext {
+                    entity: Entity::from_bits(entity_bits),
+                    component_id: ComponentId::new(component_id),
+                    caller: None,
+                };
+                hook(deferred, context);
+            }
+        }
+    };
+}
+
+make_hook_wrapper!(on_add_wrapper, C::on_add());
+make_hook_wrapper!(on_insert_wrapper, C::on_insert());
+make_hook_wrapper!(on_replace_wrapper, C::on_replace());
+make_hook_wrapper!(on_remove_wrapper, C::on_remove());
+make_hook_wrapper!(on_despawn_wrapper, C::on_despawn());
+
 pub struct World {
     pub(crate) ptr: *mut world,
 }
@@ -44,6 +72,17 @@ impl World {
         let name_cstring = CString::new(name).unwrap();
         let name_bytes = name_cstring.as_bytes_with_nul();
 
+        let on_add: Option<ComponentHookFn> =
+            C::on_add().map(|_| on_add_wrapper::<C> as ComponentHookFn);
+        let on_insert: Option<ComponentHookFn> =
+            C::on_insert().map(|_| on_insert_wrapper::<C> as ComponentHookFn);
+        let on_replace: Option<ComponentHookFn> =
+            C::on_replace().map(|_| on_replace_wrapper::<C> as ComponentHookFn);
+        let on_remove: Option<ComponentHookFn> =
+            C::on_remove().map(|_| on_remove_wrapper::<C> as ComponentHookFn);
+        let on_despawn: Option<ComponentHookFn> =
+            C::on_despawn().map(|_| on_despawn_wrapper::<C> as ComponentHookFn);
+
         let mut id: usize = 0;
         let success = unsafe {
             bevy_mod_ffi_guest_sys::world::bevy_world_register_component(
@@ -52,7 +91,12 @@ impl World {
                 name_bytes.len(),
                 layout.size(),
                 layout.align(),
-                matches!(C::STORAGE_TYPE, StorageType::Table),
+                matches!(C::STORAGE_TYPE, StorageType::Table) as u8,
+                on_add,
+                on_insert,
+                on_replace,
+                on_remove,
+                on_despawn,
                 &mut id,
             )
         };

@@ -63,3 +63,5 @@ pub type RunObserverFn =
     unsafe extern "C" fn(*mut (), *const *mut dyn_system_param, usize, *mut trigger);
 
 pub type RunCommandFn = unsafe extern "C" fn(*mut (), *mut world);
+
+pub type ComponentHookFn = unsafe extern "C" fn(*mut deferred_world, u64, usize);

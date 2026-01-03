@@ -24,7 +24,7 @@ members = [
 
 [features]
 guest = ["bevy_mod_ffi_guest"]
-macros = ["bevy_mod_ffi_macros"]
+macros = ["bevy_mod_ffi_macros", "bevy_mod_ffi_guest?/macros"]
 host = ["bevy_mod_ffi_host"]
 
 [dependencies]
