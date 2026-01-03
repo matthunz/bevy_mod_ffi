@@ -13,6 +13,8 @@ pub mod prelude {
         ptr::{Ptr, PtrMut},
     };
 
+    pub use bevy_reflect::{Reflect, TypePath};
+
     pub use bytemuck::{Pod, Zeroable};
 
     pub use crate::component::{
@@ -28,4 +30,7 @@ pub mod prelude {
     };
 
     pub use crate::world::{DeferredWorld, World};
+
+    #[cfg(feature = "macros")]
+    pub use bevy_mod_ffi_macros::SharedComponent;
 }

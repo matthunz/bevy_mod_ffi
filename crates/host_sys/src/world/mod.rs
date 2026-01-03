@@ -142,7 +142,7 @@ pub unsafe extern "C" fn bevy_world_register_component(
     name_len: usize,
     size: usize,
     align: usize,
-    is_table: bool,
+    is_table: u8,
     on_add: Option<ComponentHookFn>,
     on_insert: Option<ComponentHookFn>,
     on_replace: Option<ComponentHookFn>,
@@ -164,7 +164,7 @@ pub unsafe extern "C" fn bevy_world_register_component(
         Err(_) => return false,
     };
 
-    let storage_type = if is_table {
+    let storage_type = if is_table != 0 {
         StorageType::Table
     } else {
         StorageType::SparseSet

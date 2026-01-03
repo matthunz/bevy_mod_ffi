@@ -1,15 +1,9 @@
 use bevy_mod_ffi::prelude::*;
 use bevy_mod_ffi_example_core::{Damage, Position, Velocity};
-use bevy_reflect::TypePath;
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Zeroable, Pod, TypePath)]
+#[derive(SharedComponent, Clone, Copy, Debug, Zeroable, Pod, TypePath)]
 struct Zombie;
-
-impl SharedComponent for Zombie {
-    type Mutability = Mutable;
-    const STORAGE_TYPE: StorageType = StorageType::Table;
-}
 
 #[bevy_mod_ffi::main]
 fn main(world: &mut World) {

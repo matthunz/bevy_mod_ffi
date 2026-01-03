@@ -91,7 +91,7 @@ impl World {
                 name_bytes.len(),
                 layout.size(),
                 layout.align(),
-                matches!(C::STORAGE_TYPE, StorageType::Table),
+                matches!(C::STORAGE_TYPE, StorageType::Table) as u8,
                 on_add,
                 on_insert,
                 on_replace,
