@@ -24,5 +24,5 @@ pub mod prelude {
         ObserverSystem, On, OnEntity, SharedEvent, System, SystemParam, SystemRef, SystemState,
     };
 
-    pub use crate::world::World;
+    pub use crate::world::{DeferredWorld, World};
 }

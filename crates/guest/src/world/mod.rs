@@ -24,6 +24,9 @@ pub use bytemuck::{Pod, Zeroable};
 mod entity;
 pub use entity::{EntityWorldMut, FilteredEntityMut};
 
+mod deferred;
+pub use deferred::DeferredWorld;
+
 pub struct World {
     pub(crate) ptr: *mut world,
 }
