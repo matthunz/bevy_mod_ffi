@@ -50,8 +50,13 @@ pub enum dynamic_event {}
 /// Opaque type for Trigger pointers.
 pub enum trigger {}
 
+/// Opaque type for Commands pointers.
+pub enum commands {}
+
 pub type RunSystemFn =
     unsafe extern "C" fn(*mut (), *const *mut dyn_system_param, usize, *const u8, *mut u8);
 
 pub type RunObserverFn =
     unsafe extern "C" fn(*mut (), *const *mut dyn_system_param, usize, *mut trigger);
+
+pub type RunCommandFn = unsafe extern "C" fn(*mut (), *mut world);

@@ -1,13 +1,14 @@
 use bevy::{
     ecs::{
         prelude::*,
-        system::{DynParamBuilder, DynSystemParam, QueryParamBuilder},
+        system::{DynParamBuilder, DynSystemParam, ParamBuilder, QueryParamBuilder},
         world::{FilteredEntityMut, World},
     },
     prelude::*,
 };
 use bevy_mod_ffi_core::{
-    dyn_system_param, param_builder, query, query_builder, system_state, world,
+    commands, dyn_system_param, param_builder, query, query_builder, system_state, world,
+    RunCommandFn,
 };
 
 type SharedQueryBuilder<'w> = QueryBuilder<'w, FilteredEntityMut<'static, 'static>>;
@@ -52,6 +53,18 @@ pub unsafe extern "C" fn bevy_param_builder_add_query(
 }
 
 #[unsafe(no_mangle)]
+pub unsafe extern "C" fn bevy_param_builder_add_commands(builder_ptr: *mut param_builder) -> bool {
+    let accumulator = unsafe { &mut *(builder_ptr as *mut ParamBuilderAccumulator) };
+
+    // Use DynParamBuilder with ParamBuilder for Commands
+    let dyn_builder = DynParamBuilder::new::<Commands>(ParamBuilder);
+
+    accumulator.builders.push(dyn_builder);
+
+    true
+}
+
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn bevy_param_builder_build(
     world_ptr: *mut world,
     builder_ptr: *mut param_builder,
@@ -89,4 +102,54 @@ pub unsafe extern "C" fn bevy_dyn_system_param_downcast_query(
         *out_query = Box::into_raw(Box::new(query_param)) as *mut query;
     }
     true
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn bevy_dyn_system_param_downcast_commands(
+    param_ptr: *mut dyn_system_param,
+    out_commands: *mut *mut commands,
+) -> bool {
+    let param = unsafe { Box::from_raw(param_ptr as *mut DynSystemParam) };
+    let commands_param: Commands = param.downcast().unwrap();
+    unsafe {
+        *out_commands = Box::into_raw(Box::new(commands_param)) as *mut commands;
+    }
+    true
+}
+
+struct SharedCommand {
+    f_ptr: usize,
+    run_command_fn: RunCommandFn,
+}
+
+unsafe impl Send for SharedCommand {}
+
+impl Command for SharedCommand {
+    fn apply(self, world: &mut World) {
+        unsafe { (self.run_command_fn)(self.f_ptr as *mut (), world as *mut World as *mut world) };
+    }
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn bevy_commands_push(
+    commands_ptr: *mut commands,
+    _world_ptr: *mut world,
+    f_ptr: *mut (),
+    run_command_fn: RunCommandFn,
+) -> bool {
+    let commands = unsafe { &mut *(commands_ptr as *mut Commands) };
+
+    let command = SharedCommand {
+        f_ptr: f_ptr as usize,
+        run_command_fn,
+    };
+
+    commands.queue(command);
+
+    true
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn bevy_commands_drop(commands_ptr: *mut commands) {
+    let _ = unsafe { Box::from_raw(commands_ptr as *mut Commands) };
 }

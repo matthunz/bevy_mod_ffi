@@ -5,6 +5,9 @@ use std::slice;
 mod builder;
 pub use builder::{ParamBuilder, ParamCursor};
 
+mod commands;
+pub use commands::{Command, Commands};
+
 mod observer;
 pub use observer::{
     EntityObserverSystem, IntoEntityObserverSystem, IntoObserverSystem, ObserverSystem, On,
