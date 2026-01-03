@@ -1,13 +1,16 @@
-use crate::{SharedRegistry, SharedSystem, SystemIn};
+use crate::{DynamicHooks, SharedRegistry, SharedSystem, SystemIn};
 use bevy::{
     ecs::{
         component::{ComponentCloneBehavior, ComponentDescriptor, ComponentId, StorageType},
-        world::World,
+        lifecycle::HookContext,
+        world::{DeferredWorld, World},
     },
     prelude::*,
     ptr::OwningPtr,
 };
-use bevy_mod_ffi_core::{entity_world_mut, system, world, BundleComponent};
+use bevy_mod_ffi_core::{
+    deferred_world, entity_world_mut, system, world, BundleComponent, ComponentHookFn,
+};
 use std::{
     alloc::{self, Layout},
     any::TypeId,
@@ -15,6 +18,19 @@ use std::{
     ptr::{self, NonNull},
     slice,
 };
+
+fn run_guest_hook(
+    hook_fn: ComponentHookFn,
+    deferred: &mut DeferredWorld<'_>,
+    context: &HookContext,
+) {
+    let deferred_ptr = deferred as *mut DeferredWorld as *mut deferred_world;
+    let entity_bits = context.entity.to_bits();
+    let component_id_idx = context.component_id.index();
+    unsafe {
+        hook_fn(deferred_ptr, entity_bits, component_id_idx);
+    }
+}
 
 pub mod entity;
 
@@ -127,6 +143,11 @@ pub unsafe extern "C" fn bevy_world_register_component(
     size: usize,
     align: usize,
     is_table: bool,
+    on_add: Option<ComponentHookFn>,
+    on_insert: Option<ComponentHookFn>,
+    on_replace: Option<ComponentHookFn>,
+    on_remove: Option<ComponentHookFn>,
+    on_despawn: Option<ComponentHookFn>,
     out_id: *mut usize,
 ) -> bool {
     let world = unsafe { &mut *(world_ptr as *mut World) };
@@ -154,7 +175,7 @@ pub unsafe extern "C" fn bevy_world_register_component(
             name.clone(),
             storage_type,
             layout,
-            None, // TODO drop?
+            None,
             true,
             ComponentCloneBehavior::Ignore,
         )
@@ -162,8 +183,82 @@ pub unsafe extern "C" fn bevy_world_register_component(
 
     let id = world.register_component_with_descriptor(descriptor);
 
-    let mut registry = world.resource_mut::<SharedRegistry>();
-    registry.type_path_to_id.insert(name, id);
+    let dynamic_hooks = DynamicHooks {
+        on_add,
+        on_insert,
+        on_replace,
+        on_remove,
+        on_despawn,
+    };
+
+    {
+        let mut registry = world.resource_mut::<SharedRegistry>();
+        registry.type_path_to_id.insert(name, id);
+        registry.hooks.insert(id, dynamic_hooks);
+    }
+
+    if let Some(hooks) = world.register_component_hooks_by_id(id) {
+        if on_add.is_some() {
+            hooks.on_add(|mut deferred: DeferredWorld<'_>, context: HookContext| {
+                let hook_fn = deferred
+                    .resource::<SharedRegistry>()
+                    .hooks
+                    .get(&context.component_id)
+                    .and_then(|h| h.on_add);
+                if let Some(hook_fn) = hook_fn {
+                    run_guest_hook(hook_fn, &mut deferred, &context);
+                }
+            });
+        }
+        if on_insert.is_some() {
+            hooks.on_insert(|mut deferred: DeferredWorld<'_>, context: HookContext| {
+                let hook_fn = deferred
+                    .resource::<SharedRegistry>()
+                    .hooks
+                    .get(&context.component_id)
+                    .and_then(|h| h.on_insert);
+                if let Some(hook_fn) = hook_fn {
+                    run_guest_hook(hook_fn, &mut deferred, &context);
+                }
+            });
+        }
+        if on_replace.is_some() {
+            hooks.on_replace(|mut deferred: DeferredWorld<'_>, context: HookContext| {
+                let hook_fn = deferred
+                    .resource::<SharedRegistry>()
+                    .hooks
+                    .get(&context.component_id)
+                    .and_then(|h| h.on_replace);
+                if let Some(hook_fn) = hook_fn {
+                    run_guest_hook(hook_fn, &mut deferred, &context);
+                }
+            });
+        }
+        if on_remove.is_some() {
+            hooks.on_remove(|mut deferred: DeferredWorld<'_>, context: HookContext| {
+                let hook_fn = deferred
+                    .resource::<SharedRegistry>()
+                    .hooks
+                    .get(&context.component_id)
+                    .and_then(|h| h.on_remove);
+                if let Some(hook_fn) = hook_fn {
+                    run_guest_hook(hook_fn, &mut deferred, &context);
+                }
+            });
+        }
+        if on_despawn.is_some() {
+            hooks.on_despawn(|mut deferred: DeferredWorld<'_>, context: HookContext| {
+                let hook_fn = deferred
+                    .resource::<SharedRegistry>()
+                    .hooks
+                    .get(&context.component_id)
+                    .and_then(|h| h.on_despawn);
+                if let Some(hook_fn) = hook_fn {
+                    run_guest_hook(hook_fn, &mut deferred, &context);
+                }
+            });
+        }
+    }
 
     unsafe {
         *out_id = id.index();

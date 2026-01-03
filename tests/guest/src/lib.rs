@@ -6,7 +6,10 @@ use bevy_reflect::TypePath;
 #[derive(Clone, Copy, Debug, Zeroable, Pod, TypePath)]
 struct GuestMarker;
 
-impl SharedComponent for GuestMarker {}
+impl SharedComponent for GuestMarker {
+    type Mutability = Mutable;
+    const STORAGE_TYPE: StorageType = StorageType::Table;
+}
 
 #[bevy_mod_ffi::main]
 fn main(world: &mut World) {

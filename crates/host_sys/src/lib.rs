@@ -5,6 +5,7 @@ use bevy::{
     platform::collections::HashMap,
     reflect::TypePath,
 };
+use bevy_mod_ffi_core::ComponentHookFn;
 
 pub mod query;
 pub use query::*;
@@ -19,9 +20,19 @@ pub use world::*;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LibraryId(pub u64);
 
+#[derive(Default, Clone, Copy)]
+pub struct DynamicHooks {
+    pub on_add: Option<ComponentHookFn>,
+    pub on_insert: Option<ComponentHookFn>,
+    pub on_replace: Option<ComponentHookFn>,
+    pub on_remove: Option<ComponentHookFn>,
+    pub on_despawn: Option<ComponentHookFn>,
+}
+
 #[derive(Resource, Default)]
 pub struct SharedRegistry {
-    type_path_to_id: HashMap<String, ComponentId>,
+    pub type_path_to_id: HashMap<String, ComponentId>,
+    pub hooks: HashMap<ComponentId, DynamicHooks>,
     events: HashMap<&'static str, Box<dyn Observable>>,
     library_observers: HashMap<LibraryId, Vec<Entity>>,
     current_library_id: Option<LibraryId>,
