@@ -18,6 +18,8 @@ use std::{
 
 pub mod entity;
 
+pub mod deferred;
+
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn bevy_world_get_resource_id(
     world_ptr: *mut world,

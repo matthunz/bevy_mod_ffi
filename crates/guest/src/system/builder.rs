@@ -59,6 +59,16 @@ impl ParamBuilder {
         }
     }
 
+    pub fn add_deferred_world(&mut self) {
+        let success = unsafe {
+            bevy_mod_ffi_guest_sys::system::param::bevy_param_builder_add_deferred_world(self.ptr)
+        };
+
+        if !success {
+            panic!("Failed to add deferred world to param builder");
+        }
+    }
+
     pub fn build(mut self) -> *mut system_state {
         let mut state_ptr: *mut system_state = ptr::null_mut();
 

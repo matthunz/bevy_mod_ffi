@@ -23,6 +23,11 @@ impl<D: QueryData, F: QueryFilter> QueryState<D, F> {
         }
     }
 
+    /// Returns the underlying pointer to the query state.
+    pub fn as_ptr(&mut self) -> *mut query_state {
+        self.ptr
+    }
+
     pub fn iter_mut<'w, 's>(&'s mut self, world: &'w mut World) -> QueryIter<'w, 's, D, F> {
         let mut iter_ptr: *mut query_iter = ptr::null_mut();
         let success = unsafe {

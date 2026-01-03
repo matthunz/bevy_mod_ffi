@@ -53,6 +53,9 @@ pub enum trigger {}
 /// Opaque type for Commands pointers.
 pub enum commands {}
 
+/// Opaque type for DeferredWorld pointers.
+pub enum deferred_world {}
+
 pub type RunSystemFn =
     unsafe extern "C" fn(*mut (), *const *mut dyn_system_param, usize, *const u8, *mut u8);
 

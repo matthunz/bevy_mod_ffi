@@ -13,6 +13,8 @@ unsafe extern "C" {
 
     pub fn bevy_param_builder_add_commands(builder: *mut param_builder) -> bool;
 
+    pub fn bevy_param_builder_add_deferred_world(builder: *mut param_builder) -> bool;
+
     pub fn bevy_param_builder_build(
         world_ptr: *mut world,
         builder: *mut param_builder,
@@ -29,6 +31,11 @@ unsafe extern "C" {
     pub fn bevy_dyn_system_param_downcast_commands(
         param_ptr: *mut dyn_system_param,
         out_commands: *mut *mut commands,
+    ) -> bool;
+
+    pub fn bevy_dyn_system_param_downcast_deferred_world(
+        param_ptr: *mut dyn_system_param,
+        out_deferred: *mut *mut deferred_world,
     ) -> bool;
 
     pub fn bevy_commands_push(

@@ -1,5 +1,7 @@
 use bevy_mod_ffi_core::*;
 
+pub mod deferred;
+
 pub mod entity;
 
 pub use entity::*;

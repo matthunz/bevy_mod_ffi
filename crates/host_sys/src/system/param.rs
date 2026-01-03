@@ -2,13 +2,13 @@ use bevy::{
     ecs::{
         prelude::*,
         system::{DynParamBuilder, DynSystemParam, ParamBuilder, QueryParamBuilder},
-        world::{FilteredEntityMut, World},
+        world::{DeferredWorld, FilteredEntityMut, World},
     },
     prelude::*,
 };
 use bevy_mod_ffi_core::{
-    commands, dyn_system_param, param_builder, query, query_builder, system_state, world,
-    RunCommandFn,
+    commands, deferred_world, dyn_system_param, param_builder, query, query_builder, system_state,
+    world, RunCommandFn,
 };
 
 type SharedQueryBuilder<'w> = QueryBuilder<'w, FilteredEntityMut<'static, 'static>>;
@@ -64,6 +64,19 @@ pub unsafe extern "C" fn bevy_param_builder_add_commands(builder_ptr: *mut param
 }
 
 #[unsafe(no_mangle)]
+pub unsafe extern "C" fn bevy_param_builder_add_deferred_world(
+    builder_ptr: *mut param_builder,
+) -> bool {
+    let accumulator = unsafe { &mut *(builder_ptr as *mut ParamBuilderAccumulator) };
+
+    let dyn_builder = DynParamBuilder::new::<DeferredWorld>(ParamBuilder);
+
+    accumulator.builders.push(dyn_builder);
+
+    true
+}
+
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn bevy_param_builder_build(
     world_ptr: *mut world,
     builder_ptr: *mut param_builder,
@@ -112,6 +125,19 @@ pub unsafe extern "C" fn bevy_dyn_system_param_downcast_commands(
     let commands_param: Commands = param.downcast().unwrap();
     unsafe {
         *out_commands = Box::into_raw(Box::new(commands_param)) as *mut commands;
+    }
+    true
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn bevy_dyn_system_param_downcast_deferred_world(
+    param_ptr: *mut dyn_system_param,
+    out_deferred: *mut *mut deferred_world,
+) -> bool {
+    let param = unsafe { Box::from_raw(param_ptr as *mut DynSystemParam) };
+    let deferred_param: DeferredWorld = param.downcast().unwrap();
+    unsafe {
+        *out_deferred = Box::into_raw(Box::new(deferred_param)) as *mut deferred_world;
     }
     true
 }
