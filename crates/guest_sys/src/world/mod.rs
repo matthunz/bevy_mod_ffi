@@ -66,4 +66,10 @@ unsafe extern "C" {
         event_data_len: usize,
         entity_bits: u64,
     ) -> bool;
+
+    pub fn bevy_world_entity_mut(
+        world: *mut world,
+        entity_bits: u64,
+        out_entity_world_mut_ptr: *mut *mut entity_world_mut,
+    ) -> bool;
 }

@@ -204,6 +204,20 @@ impl World {
         unsafe { EntityWorldMut::from_ptr(entity, entity_ptr, self) }
     }
 
+    pub fn entity_mut(&mut self, entity: Entity) -> EntityWorldMut<'_> {
+        let mut entity_ptr = ptr::null_mut();
+        let success = unsafe {
+            bevy_mod_ffi_guest_sys::world::bevy_world_entity_mut(
+                self.ptr,
+                entity.to_bits(),
+                &mut entity_ptr,
+            )
+        };
+        assert!(success, "Failed to get entity {:?}", entity);
+
+        unsafe { EntityWorldMut::from_ptr(entity, entity_ptr, self) }
+    }
+
     pub fn add_observer<E, Marker, S>(&mut self, observer: S)
     where
         E: SharedEvent + 'static,

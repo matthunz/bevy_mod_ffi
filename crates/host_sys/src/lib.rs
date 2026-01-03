@@ -20,7 +20,7 @@ pub struct LibraryId(pub u64);
 #[derive(Resource, Default)]
 pub struct SharedRegistry {
     type_path_to_id: HashMap<String, ComponentId>,
-    pub events: HashMap<&'static str, Box<dyn Observable>>,
+    events: HashMap<&'static str, Box<dyn Observable>>,
     library_observers: HashMap<LibraryId, Vec<Entity>>,
     current_library_id: Option<LibraryId>,
     next_library_id: u64,

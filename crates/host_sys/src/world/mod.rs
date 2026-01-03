@@ -211,6 +211,27 @@ pub unsafe extern "C" fn bevy_world_spawn(
     true
 }
 
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn bevy_world_entity_mut(
+    world_ptr: *mut world,
+    entity_bits: u64,
+    out_entity_world_mut_ptr: *mut *mut entity_world_mut,
+) -> bool {
+    let world = unsafe { &mut *(world_ptr as *mut World) };
+    let entity = Entity::from_bits(entity_bits);
+
+    let entity_mut = match world.get_entity_mut(entity) {
+        Ok(e) => e,
+        Err(_) => return false,
+    };
+
+    unsafe {
+        *out_entity_world_mut_ptr = Box::into_raw(Box::new(entity_mut)) as *mut entity_world_mut;
+    }
+
+    true
+}
+
 fn get_type_id(type_path_ptr: *const u8, type_path_len: usize, world: &World) -> Option<TypeId> {
     let type_path_bytes = unsafe { slice::from_raw_parts(type_path_ptr, type_path_len) };
     let type_path = CStr::from_bytes_with_nul(type_path_bytes)
