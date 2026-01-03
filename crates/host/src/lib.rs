@@ -1,3 +1,5 @@
+#![allow(clippy::missing_safety_doc)]
+
 pub use bevy_mod_ffi_host_sys as sys;
 
 use bevy::ecs::world::World;

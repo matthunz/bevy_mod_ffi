@@ -1,3 +1,5 @@
+#![allow(clippy::missing_safety_doc)]
+
 use bevy::{
     ecs::{component::ComponentId, entity::Entity, event::Event, resource::Resource},
     platform::collections::HashMap,

@@ -56,7 +56,6 @@ pub unsafe extern "C" fn bevy_param_builder_add_query(
 pub unsafe extern "C" fn bevy_param_builder_add_commands(builder_ptr: *mut param_builder) -> bool {
     let accumulator = unsafe { &mut *(builder_ptr as *mut ParamBuilderAccumulator) };
 
-    // Use DynParamBuilder with ParamBuilder for Commands
     let dyn_builder = DynParamBuilder::new::<Commands>(ParamBuilder);
 
     accumulator.builders.push(dyn_builder);

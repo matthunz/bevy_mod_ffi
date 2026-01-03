@@ -17,6 +17,9 @@ members = [
   "example/core",
   "example/guest",
   "example/host",
+  "tests/core",
+  "tests/guest",
+  "tests/host",
 ]
 
 [features]

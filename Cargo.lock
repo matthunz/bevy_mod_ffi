@@ -1054,6 +1054,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_mod_ffi_test_core"
+version = "0.1.0"
+dependencies = [
+ "bevy_ecs",
+ "bevy_mod_ffi_guest",
+ "bevy_reflect",
+ "bytemuck",
+]
+
+[[package]]
+name = "bevy_mod_ffi_test_guest"
+version = "0.1.0"
+dependencies = [
+ "bevy_mod_ffi",
+ "bevy_mod_ffi_test_core",
+ "bevy_reflect",
+ "bytemuck",
+]
+
+[[package]]
+name = "bevy_mod_ffi_test_host"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bevy_mod_ffi",
+ "bevy_mod_ffi_test_core",
+ "libloading",
+]
+
+[[package]]
 name = "bevy_pbr"
 version = "0.17.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -32,8 +32,12 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
       - name: Install Dependencies
         run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev libwayland-dev
+      - name: Build host library first
+        run: cargo build -p bevy_mod_ffi_host
+      - name: Build guest libraries
+        run: cargo build -p bevy_mod_ffi_example_guest -p bevy_mod_ffi_test_guest
       - name: Run cargo test
-        run: cargo test
+        run: cargo test --workspace
 
   # Run cargo clippy -- -D warnings
   clippy_check:
@@ -59,8 +63,12 @@ jobs:
           components: clippy
       - name: Install Dependencies
         run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev libwayland-dev
+      - name: Build host library first
+        run: cargo build -p bevy_mod_ffi_host
+      - name: Build guest libraries
+        run: cargo build -p bevy_mod_ffi_example_guest -p bevy_mod_ffi_test_guest
       - name: Run clippy
-        run: cargo clippy -- -D warnings
+        run: cargo clippy --workspace -- -D warnings
 
   # Run cargo fmt --all -- --check
   format:

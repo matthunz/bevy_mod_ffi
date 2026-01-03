@@ -1,0 +1,4 @@
+# Run tests with a single thread to avoid DLL loading conflicts
+# when multiple tests try to load the same guest library simultaneously
+[env]
+RUST_TEST_THREADS = "1"

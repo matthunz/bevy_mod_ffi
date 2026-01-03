@@ -1,3 +1,5 @@
+#![allow(clippy::too_many_arguments)]
+
 use bevy_mod_ffi_core::dyn_system_param;
 use bytemuck::Pod;
 use std::slice;
