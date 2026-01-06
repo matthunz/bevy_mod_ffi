@@ -4,7 +4,7 @@ use crate::{
 };
 use bevy_mod_ffi_core::{dyn_system_param, param_builder, system_state, world};
 use bevy_mod_ffi_guest_sys;
-use std::ptr;
+use std::{mem, ptr};
 
 pub struct ParamBuilder {
     pub(crate) ptr: *mut param_builder,
@@ -38,7 +38,7 @@ impl ParamBuilder {
     ) {
         let query_builder = QueryBuilder::<D, F>::new(world);
         let query_ptr = query_builder.ptr;
-        std::mem::forget(query_builder);
+        mem::forget(query_builder);
 
         let success = unsafe {
             bevy_mod_ffi_guest_sys::system::param::bevy_param_builder_add_query(self.ptr, query_ptr)
@@ -69,7 +69,7 @@ impl ParamBuilder {
         }
     }
 
-    pub fn build(mut self) -> *mut system_state {
+    pub fn build(self) -> *mut system_state {
         let mut state_ptr: *mut system_state = ptr::null_mut();
 
         let success = unsafe {
@@ -79,22 +79,18 @@ impl ParamBuilder {
                 &mut state_ptr,
             )
         };
-
-        self.ptr = ptr::null_mut();
-
-        if !success || state_ptr.is_null() {
+        if !success {
             panic!("Failed to build SystemState from ParamBuilder");
         }
 
+        mem::forget(self);
         state_ptr
     }
 }
 
 impl Drop for ParamBuilder {
     fn drop(&mut self) {
-        if !self.ptr.is_null() {
-            unsafe { bevy_mod_ffi_guest_sys::system::param::bevy_param_builder_drop(self.ptr) };
-        }
+        unsafe { bevy_mod_ffi_guest_sys::system::param::bevy_param_builder_drop(self.ptr) };
     }
 }
 

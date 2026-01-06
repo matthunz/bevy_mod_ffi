@@ -1,19 +1,13 @@
-use crate::SharedRegistry;
+use crate::{SharedRegistry, SharedSystemState};
 use bevy::{
     ecs::{
-        entity::Entity,
-        event::Event,
-        observer::On,
-        prelude::*,
-        system::{DynSystemParam, SystemState},
+        entity::Entity, event::Event, observer::On, prelude::*, system::DynSystemParam,
         world::World,
     },
     prelude::*,
 };
 use bevy_mod_ffi_core::{dyn_system_param, system_state, world, RunObserverFn};
 use std::{any::Any, ffi::CStr, marker::PhantomData, slice, sync::Arc};
-
-type SharedSystemState = SystemState<(Vec<DynSystemParam<'static, 'static>>,)>;
 
 #[derive(Clone)]
 pub struct LibraryHandle(pub Arc<dyn Any + Send + Sync>);

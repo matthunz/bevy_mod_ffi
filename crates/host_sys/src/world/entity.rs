@@ -1,13 +1,10 @@
-use crate::{system::observer::CurrentLibraryHandle, SharedRegistry};
+use crate::{system::observer::CurrentLibraryHandle, SharedRegistry, SharedSystemState};
 use bevy::ecs::{
     component::ComponentId,
-    system::SystemState,
     world::{EntityWorldMut, FilteredEntityMut},
 };
 use bevy_mod_ffi_core::{entity_world_mut, filtered_entity_mut, system_state, RunObserverFn};
 use std::{ffi::CStr, slice};
-
-type SharedSystemState = SystemState<(Vec<bevy::ecs::system::DynSystemParam<'static, 'static>>,)>;
 
 type SharedEntityRef = FilteredEntityMut<'static, 'static>;
 

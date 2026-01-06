@@ -11,6 +11,8 @@ use bevy_mod_ffi_core::{
     world, RunCommandFn,
 };
 
+use crate::SharedSystemState;
+
 type SharedQueryBuilder<'w> = QueryBuilder<'w, FilteredEntityMut<'static, 'static>>;
 
 pub struct ParamBuilderAccumulator {
@@ -85,7 +87,7 @@ pub unsafe extern "C" fn bevy_param_builder_build(
     let world = unsafe { &mut *(world_ptr as *mut World) };
     let accumulator = unsafe { Box::from_raw(builder_ptr as *mut ParamBuilderAccumulator) };
 
-    let system_state = accumulator.builders.build_state(world);
+    let system_state: SharedSystemState = (accumulator.builders,).build_state(world);
     unsafe {
         *out_state = Box::into_raw(Box::new(system_state)) as *mut system_state;
     }
@@ -100,7 +102,7 @@ pub unsafe extern "C" fn bevy_param_builder_drop(builder_ptr: *mut param_builder
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn bevy_dyn_system_params_drop(param_ptr: *mut dyn_system_param) {
-    let _ = unsafe { Box::from_raw(param_ptr) };
+    let _ = unsafe { Box::from_raw(param_ptr as *mut DynSystemParam) };
 }
 
 #[unsafe(no_mangle)]

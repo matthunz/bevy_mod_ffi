@@ -18,5 +18,6 @@ fn main(world: &mut World) {
         .observe(|event: OnEntity<Damage>, query: Query<&Position>| {
             println!("Entity {:?} took {} damage!", event.entity, event.amount);
         });
+
     dbg!("done!");
 }

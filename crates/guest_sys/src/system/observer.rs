@@ -1,5 +1,6 @@
 use bevy_mod_ffi_core::*;
 use std::slice;
+pub type ObserverClosure = Box<dyn FnMut(&[*mut dyn_system_param], *mut trigger)>;
 
 unsafe extern "C" {
     pub fn bevy_system_state_build_on(
@@ -20,8 +21,6 @@ pub unsafe extern "C" fn bevy_guest_run_observer(
     params_len: usize,
     trigger_ptr: *mut trigger,
 ) {
-    type ObserverClosure = Box<dyn FnMut(&[*mut dyn_system_param], *mut trigger)>;
-
     let f = unsafe { &mut *(f_ptr as *mut ObserverClosure) };
     let params_slice = unsafe { slice::from_raw_parts(params, params_len) };
     f(params_slice, trigger_ptr);

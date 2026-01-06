@@ -10,8 +10,8 @@ use bevy_ecs::{
     entity::Entity,
     ptr::{Ptr, PtrMut},
 };
-use bevy_mod_ffi_core::{dyn_system_param, entity_world_mut, filtered_entity_mut, trigger};
-use bevy_mod_ffi_guest_sys;
+use bevy_mod_ffi_core::{entity_world_mut, filtered_entity_mut};
+use bevy_mod_ffi_guest_sys::{self, system::ObserverClosure};
 use std::{ffi::CString, marker::PhantomData, ptr::NonNull};
 
 pub struct EntityWorldMut<'w> {
@@ -51,8 +51,6 @@ impl<'w> EntityWorldMut<'w> {
         let event_name = E::type_path();
         let event_name_cstring = CString::new(event_name).unwrap();
         let event_name_bytes = event_name_cstring.as_bytes_with_nul();
-
-        type ObserverClosure = Box<dyn FnMut(&[*mut dyn_system_param], *mut trigger)>;
 
         let observer_boxed: ObserverClosure = Box::new(move |params, event_ptr| {
             let mut param_cursor = ParamCursor::new(params);
