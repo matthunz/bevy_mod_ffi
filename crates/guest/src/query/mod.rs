@@ -20,15 +20,15 @@ pub use state::QueryState;
 
 pub struct Query<'w, 's, D: QueryData, F: QueryFilter = ()> {
     ptr: *mut query,
-    state: &'s mut QueryState<D, F>,
-    _marker: PhantomData<&'w mut World>,
+    state: &'s mut D::State,
+    _marker: PhantomData<(&'w mut World, &'s mut QueryState<D, F>)>,
 }
 
 impl<'w, 's, D: QueryData, F: QueryFilter> Query<'w, 's, D, F> {
-    pub(crate) fn new(ptr: *mut query, state: &'s mut QueryState<D, F>) -> Self {
+    pub(crate) fn new(ptr: *mut query, state: &'s mut D::State) -> Self {
         Self {
-            state,
             ptr,
+            state,
             _marker: PhantomData,
         }
     }
@@ -42,7 +42,7 @@ impl<'w, 's, D: QueryData, F: QueryFilter> Query<'w, 's, D, F> {
             panic!("Failed to create query iterator");
         }
 
-        QueryIter::new(iter_ptr, &mut self.state.state)
+        QueryIter::new(iter_ptr, self.state)
     }
 }
 

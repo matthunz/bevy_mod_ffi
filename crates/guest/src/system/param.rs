@@ -1,6 +1,6 @@
 use super::{ParamBuilder, ParamCursor};
 use crate::{
-    query::{Query, QueryData, QueryFilter, QueryState},
+    query::{Query, QueryData, QueryFilter},
     world::World,
 };
 use bevy_mod_ffi_core::query;
@@ -41,12 +41,12 @@ where
     D: QueryData + 'static,
     F: QueryFilter + 'static,
 {
-    type State = QueryState<D, F>;
+    type State = D::State;
     type Item<'w, 's> = Query<'w, 's, D, F>;
 
     fn build(world: &mut World, builder: &mut ParamBuilder) -> Self::State {
         builder.add_query::<D, F>(world);
-        QueryState::new(world)
+        D::build_state(world)
     }
 
     unsafe fn get_param<'w, 's>(

@@ -40,7 +40,7 @@ impl<'w> DeferredWorld<'w> {
             panic!("Failed to create query from DeferredWorld");
         }
 
-        Query::new(query_ptr, state)
+        Query::new(query_ptr, &mut state.state)
     }
 
     pub fn get_mut<T: bytemuck::Pod>(
