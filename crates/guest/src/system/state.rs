@@ -16,9 +16,9 @@ pub struct SystemState<P: SystemParam> {
 
 impl<P: SystemParam + 'static> SystemState<P> {
     pub fn new(world: &mut World) -> Self {
-        let mut builder = ParamBuilder::new(world);
+        let mut builder = ParamBuilder::new();
         let state = P::build(world, &mut builder);
-        let state_ptr = builder.build();
+        let state_ptr = builder.build(world);
 
         Self {
             ptr: state_ptr,

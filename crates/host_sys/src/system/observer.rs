@@ -182,8 +182,6 @@ pub unsafe extern "C" fn bevy_system_state_build_on(
         Err(_) => return false,
     };
 
-    let f_ptr_n = f_ptr as usize;
-
     let library_handle = world
         .get_resource::<CurrentLibraryHandle>()
         .and_then(|h| h.0.clone());
@@ -197,7 +195,7 @@ pub unsafe extern "C" fn bevy_system_state_build_on(
         let observer_entity = event_ops.add_observer_with_state(
             world,
             state,
-            f_ptr_n,
+            f_ptr as usize,
             run_observer_fn,
             library_handle,
         );

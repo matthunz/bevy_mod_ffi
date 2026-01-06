@@ -272,9 +272,9 @@ impl World {
         <S::System as System>::Param: 'static,
     {
         let mut system = observer.into_system();
-        let mut builder = ParamBuilder::new(self);
+        let mut builder = ParamBuilder::new();
         let mut state = <<S::System as System>::Param as SystemParam>::build(self, &mut builder);
-        let state_ptr = builder.build();
+        let state_ptr = builder.build(self);
 
         let event_name = E::type_path();
         let event_name_cstring = CString::new(event_name).unwrap();
