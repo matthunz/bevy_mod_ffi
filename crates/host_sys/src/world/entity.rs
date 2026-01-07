@@ -69,9 +69,8 @@ pub unsafe extern "C" fn bevy_entity_world_mut_observe(
     f_ptr: *mut (),
     run_observer_fn: RunObserverFn,
 ) -> bool {
-    let entity_world_mut = unsafe { &mut *(entity_ptr as *mut EntityWorldMut) };
-    let entity = entity_world_mut.id();
-    let world = entity_world_mut.world_mut();
+    let entity = unsafe { &mut *(entity_ptr as *mut EntityWorldMut) };
+    let world = entity.world_mut();
     let state: Box<SharedSystemState> = unsafe { Box::from_raw(state_ptr as _) };
 
     let event_name_bytes = unsafe { slice::from_raw_parts(event_name_ptr, event_name_len) };
@@ -83,8 +82,6 @@ pub unsafe extern "C" fn bevy_entity_world_mut_observe(
         Err(_) => return false,
     };
 
-    let f_ptr_n = f_ptr as usize;
-
     let library_handle = world
         .get_resource::<CurrentLibraryHandle>()
         .and_then(|h| h.0.clone());
@@ -95,20 +92,24 @@ pub unsafe extern "C" fn bevy_entity_world_mut_observe(
     };
 
     if let Some(event_ops) = registry.events.remove(event_name) {
-        let observer_entity = event_ops.add_entity_observer_with_state(
-            world,
-            entity,
-            state,
-            f_ptr_n,
-            run_observer_fn,
-            library_handle,
-        );
+        entity.reborrow_scope(|entity| {
+            event_ops.add_entity_observer_with_state(
+                entity,
+                state,
+                f_ptr as usize,
+                run_observer_fn,
+                library_handle,
+            );
+        });
 
-        registry.register_observer(observer_entity);
+        registry.register_observer(entity.id());
 
+        let world = entity.world_mut();
         let key = event_ops.type_path();
+
         registry.events.insert(key, event_ops);
         world.insert_resource(registry);
+
         true
     } else {
         world.insert_resource(registry);

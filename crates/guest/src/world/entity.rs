@@ -41,7 +41,6 @@ impl<'w> EntityWorldMut<'w> {
         <S::System as System>::Param: 'static,
     {
         let mut system = observer.into_system();
-        let entity = self.id;
 
         let mut builder = ParamBuilder::new();
         let mut state =
@@ -62,7 +61,13 @@ impl<'w> EntityWorldMut<'w> {
             };
 
             let event = unsafe { &*(event_ptr as *const E) };
-            system.run(OnEntity { entity, event }, params);
+            system.run(
+                OnEntity {
+                    entity: self.id,
+                    event,
+                },
+                params,
+            );
         });
 
         let success = unsafe {

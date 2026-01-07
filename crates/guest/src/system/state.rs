@@ -128,9 +128,7 @@ impl<P: SystemParam + 'static> SystemState<P> {
 
 impl<P: SystemParam> Drop for SystemState<P> {
     fn drop(&mut self) {
-        if !self.ptr.is_null() {
-            unsafe { bevy_mod_ffi_guest_sys::system::state::bevy_system_state_drop(self.ptr) };
-        }
+        unsafe { bevy_mod_ffi_guest_sys::system::state::bevy_system_state_drop(self.ptr) };
     }
 }
 

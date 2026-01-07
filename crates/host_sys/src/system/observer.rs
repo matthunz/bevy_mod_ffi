@@ -5,6 +5,7 @@ use bevy::{
         world::World,
     },
     prelude::*,
+    reflect::TypePath,
 };
 use bevy_mod_ffi_core::{dyn_system_param, system_state, world, RunObserverFn};
 use std::{any::Any, ffi::CStr, marker::PhantomData, slice, sync::Arc};
@@ -45,13 +46,12 @@ pub trait Observable: Send + Sync + 'static {
 
     fn add_entity_observer_with_state(
         &self,
-        world: &mut World,
-        entity: Entity,
+        entity: EntityWorldMut,
         state: Box<SharedSystemState>,
         f_ptr: usize,
         run_observer_fn: RunObserverFn,
         library_handle: Option<LibraryHandle>,
-    ) -> Entity;
+    );
 
     fn trigger(&self, world: &mut World, event_data: &[u8]);
 
@@ -76,7 +76,7 @@ impl<E> Default for ObservableOf<E> {
     }
 }
 
-impl<E: Event + Clone + Copy + bevy::reflect::TypePath> Observable for ObservableOf<E>
+impl<E: Event + Clone + Copy + TypePath> Observable for ObservableOf<E>
 where
     for<'a> E::Trigger<'a>: Default,
 {
@@ -121,34 +121,34 @@ where
 
     fn add_entity_observer_with_state(
         &self,
-        world: &mut World,
-        entity: Entity,
+        mut entity: EntityWorldMut,
         state: Box<SharedSystemState>,
         f_ptr: usize,
         run_observer_fn: RunObserverFn,
         library_handle: Option<LibraryHandle>,
-    ) -> Entity {
+    ) {
         let observer_system = state.build_any_system(
             move |on: On<EntityEventWrapper<E>>, params: Vec<DynSystemParam>| {
+                /*
                 let _ = &library_handle;
 
                 let mut param_ptrs: Vec<*mut dyn_system_param> = Vec::new();
                 for param in params {
-                    let boxed = Box::new(param);
-                    param_ptrs.push(Box::into_raw(boxed) as *mut dyn_system_param);
+                    param_ptrs.push(Box::into_raw(Box::new(param)) as *mut dyn_system_param);
                 }
+
                 let len = param_ptrs.len();
-                let pointers_ptr = param_ptrs.as_ptr();
+                let params_ptr = param_ptrs.into_boxed_slice();
 
                 let event_ptr = &on.event().inner as *const E as *const u8;
-
                 unsafe {
-                    run_observer_fn(f_ptr as _, pointers_ptr, len, event_ptr as _);
+                    run_observer_fn(f_ptr as _, params_ptr.as_ptr(), len, event_ptr as _);
                 };
+                 */
             },
         );
 
-        world.entity_mut(entity).observe(observer_system).id()
+        entity.observe(observer_system);
     }
 
     fn trigger_for_entity(&self, world: &mut World, event_data: &[u8], entity: Entity) {
