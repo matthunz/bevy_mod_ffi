@@ -81,6 +81,12 @@ impl ParamBuilder {
     }
 }
 
+impl Default for ParamBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Drop for ParamBuilder {
     fn drop(&mut self) {
         unsafe { bevy_mod_ffi_guest_sys::system::param::bevy_param_builder_drop(self.ptr) };
