@@ -82,9 +82,12 @@ pub unsafe extern "C" fn bevy_entity_world_mut_observe(
         Err(_) => return false,
     };
 
-    let library_handle = world
+    let Some(library_handle) = world
         .get_resource::<CurrentLibraryHandle>()
-        .and_then(|h| h.0.clone());
+        .and_then(|h| h.0.clone())
+    else {
+        return false;
+    };
 
     let mut registry = match world.remove_resource::<SharedRegistry>() {
         Some(r) => r,
@@ -93,7 +96,7 @@ pub unsafe extern "C" fn bevy_entity_world_mut_observe(
 
     if let Some(event_ops) = registry.events.remove(event_name) {
         entity.reborrow_scope(|entity| {
-            event_ops.add_entity_observer_with_state(
+            event_ops.observe_entity(
                 entity,
                 state,
                 f_ptr as usize,

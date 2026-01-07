@@ -13,45 +13,31 @@ use std::{any::Any, ffi::CStr, marker::PhantomData, slice, sync::Arc};
 #[derive(Clone)]
 pub struct LibraryHandle(pub Arc<dyn Any + Send + Sync>);
 
-#[derive(Event, Clone, Copy)]
+#[derive(EntityEvent, Clone, Copy)]
 pub struct EntityEventWrapper<E> {
     pub entity: Entity,
     pub inner: E,
 }
 
-impl<E> bevy::ecs::event::EntityEvent for EntityEventWrapper<E>
-where
-    E: Event + Clone + Copy,
-    for<'a> E::Trigger<'a>: Default,
-{
-    fn event_target(&self) -> Entity {
-        self.entity
-    }
-
-    fn event_target_mut(&mut self) -> &mut Entity {
-        &mut self.entity
-    }
-}
-
 pub trait Observable: Send + Sync + 'static {
     fn type_path(&self) -> &'static str;
 
-    fn add_observer_with_state(
+    fn observe(
         &self,
         world: &mut World,
         state: Box<SharedSystemState>,
         f_ptr: usize,
         run_observer_fn: RunObserverFn,
-        library_handle: Option<LibraryHandle>,
+        library_handle: LibraryHandle,
     ) -> Entity;
 
-    fn add_entity_observer_with_state(
+    fn observe_entity(
         &self,
         entity: EntityWorldMut,
         state: Box<SharedSystemState>,
         f_ptr: usize,
         run_observer_fn: RunObserverFn,
-        library_handle: Option<LibraryHandle>,
+        library_handle: LibraryHandle,
     );
 
     fn trigger(&self, world: &mut World, event_data: &[u8]);
@@ -85,13 +71,13 @@ where
         E::type_path()
     }
 
-    fn add_observer_with_state(
+    fn observe(
         &self,
         world: &mut World,
         state: Box<SharedSystemState>,
         f_ptr: usize,
         run_observer_fn: RunObserverFn,
-        library_handle: Option<LibraryHandle>,
+        library_handle: LibraryHandle,
     ) -> Entity {
         let observer_system =
             state.build_any_system(move |on: On<E>, params: Vec<DynSystemParam>| {
@@ -120,13 +106,13 @@ where
         world.trigger(event);
     }
 
-    fn add_entity_observer_with_state(
+    fn observe_entity(
         &self,
         mut entity: EntityWorldMut,
         state: Box<SharedSystemState>,
         f_ptr: usize,
         run_observer_fn: RunObserverFn,
-        library_handle: Option<LibraryHandle>,
+        library_handle: LibraryHandle,
     ) {
         let observer_system = state.build_any_system(
             move |on: On<EntityEventWrapper<E>>, params: Vec<DynSystemParam>| {
@@ -179,9 +165,12 @@ pub unsafe extern "C" fn bevy_system_state_build_on(
         Err(_) => return false,
     };
 
-    let library_handle = world
+    let Some(library_handle) = world
         .get_resource::<CurrentLibraryHandle>()
-        .and_then(|h| h.0.clone());
+        .and_then(|h| h.0.clone())
+    else {
+        return false;
+    };
 
     let mut registry = match world.remove_resource::<SharedRegistry>() {
         Some(r) => r,
@@ -189,19 +178,19 @@ pub unsafe extern "C" fn bevy_system_state_build_on(
     };
 
     if let Some(event_ops) = registry.events.remove(event_name) {
-        let observer_entity = event_ops.add_observer_with_state(
+        let observer_entity = event_ops.observe(
             world,
             state,
             f_ptr as usize,
             run_observer_fn,
             library_handle,
         );
-
         registry.register_observer(observer_entity);
 
         let key = event_ops.type_path();
         registry.events.insert(key, event_ops);
         world.insert_resource(registry);
+
         true
     } else {
         world.insert_resource(registry);
