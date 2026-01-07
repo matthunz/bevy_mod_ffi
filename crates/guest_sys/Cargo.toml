@@ -1,9 +1,12 @@
 [package]
 name = "bevy_mod_ffi_guest_sys"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 description = "Low-level FFI bindings for bevy_mod_ffi guests"
+documentation = "https://docs.rs/bevy_mod_ffi_guest_sys"
+homepage = "https://github.com/matthunz/bevy_mod_ffi"
+repository = "https://github.com/matthunz/bevy_mod_ffi"
 
 [dependencies]
-bevy_mod_ffi_core = { version = "0.1.0", path = "../core" }
+bevy_mod_ffi_core = { version = "0.2.0", path = "../core" }

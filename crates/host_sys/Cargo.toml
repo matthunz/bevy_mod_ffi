@@ -1,10 +1,13 @@
 [package]
 name = "bevy_mod_ffi_host_sys"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Low-level FFI bindings for bevy_mod_ffi hosts"
+documentation = "https://docs.rs/bevy_mod_ffi_host_sys"
+homepage = "https://github.com/matthunz/bevy_mod_ffi"
+repository = "https://github.com/matthunz/bevy_mod_ffi"
 
 [dependencies]
-bevy_mod_ffi_core = { path = "../core", version = "0.1.0" }
+bevy_mod_ffi_core = { path = "../core", version = "0.2.0" }
 bevy = "0.17.3"

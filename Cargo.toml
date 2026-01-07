@@ -1,9 +1,12 @@
 [package]
 name = "bevy_mod_ffi"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 description = "FFI utilities for Bevy"
+documentation = "https://docs.rs/bevy_mod_ffi"
+homepage = "https://github.com/matthunz/bevy_mod_ffi"
+repository = "https://github.com/matthunz/bevy_mod_ffi"
 
 [workspace]
 members = [
@@ -28,10 +31,14 @@ macros = ["bevy_mod_ffi_macros", "bevy_mod_ffi_guest?/macros"]
 host = ["bevy_mod_ffi_host"]
 
 [dependencies]
-bevy_mod_ffi_core = { path = "crates/core", version = "0.1.0" }
-bevy_mod_ffi_guest = { path = "crates/guest", version = "0.1.0", optional = true }
-bevy_mod_ffi_host = { path = "crates/host", version = "0.1.0", optional = true }
-bevy_mod_ffi_macros = { path = "crates/macros", version = "0.1.0", optional = true }
+bevy_mod_ffi_core = { path = "crates/core", version = "0.2.0" }
+bevy_mod_ffi_guest = { path = "crates/guest", version = "0.2.0", optional = true }
+bevy_mod_ffi_host = { path = "crates/host", version = "0.2.0", optional = true }
+bevy_mod_ffi_macros = { path = "crates/macros", version = "0.2.0", optional = true }
 
 [package.metadata.docs.rs]
 all-features = true
+
+[workspace.metadata.release]
+shared-version = true
+tag-name = "v{{version}}"

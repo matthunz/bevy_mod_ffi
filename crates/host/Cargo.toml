@@ -1,16 +1,19 @@
 [package]
 name = "bevy_mod_ffi_host"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 description = "FFI utilities for Bevy hosts"
+documentation = "https://docs.rs/bevy_mod_ffi_host"
+homepage = "https://github.com/matthunz/bevy_mod_ffi"
+repository = "https://github.com/matthunz/bevy_mod_ffi"
 
 [lib]
 crate-type = ["rlib", "cdylib"]
 
 [dependencies]
-bevy_mod_ffi_core = { path = "../core", version = "0.1.0" }
-bevy_mod_ffi_host_sys = { path = "../host_sys", version = "0.1.0" }
+bevy_mod_ffi_core = { path = "../core", version = "0.2.0" }
+bevy_mod_ffi_host_sys = { path = "../host_sys", version = "0.2.0" }
 bevy = { version = "0.17.3", default-features = false }
 bytemuck = { version = "1.21", features = ["derive"] }
 libloading = "0.8"
