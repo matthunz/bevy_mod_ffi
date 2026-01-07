@@ -1,6 +1,6 @@
 use super::{ParamBuilder, SystemParam, bevy_guest_run_system};
 use crate::{
-    system::{IntoSystem, ParamCursor, System},
+    system::{IntoSystem, ParamCursor, System, SystemClosure},
     world::World,
 };
 use bevy_mod_ffi_core::{dyn_system_param, system, system_state};
@@ -81,8 +81,6 @@ impl<P: SystemParam + 'static> SystemState<P> {
 
         let output_size = mem::size_of::<Out>();
 
-        type SystemClosure = Box<dyn FnMut(&[*mut dyn_system_param], *const u8, *mut u8)>;
-
         let system_boxed: SystemClosure = Box::new(move |params, input_ptr, output_ptr| {
             let mut param_cursor = ParamCursor::new(params);
             let params = unsafe {
@@ -101,18 +99,18 @@ impl<P: SystemParam + 'static> SystemState<P> {
             }
         });
 
-        let mut out_ptr: *mut system = ptr::null_mut();
+        let mut ptr: *mut system = ptr::null_mut();
         unsafe {
             bevy_mod_ffi_guest_sys::system::state::bevy_system_state_build(
                 state_ptr,
                 Box::into_raw(Box::new(system_boxed)) as _,
                 bevy_guest_run_system,
-                &mut out_ptr,
+                &mut ptr,
             )
         }
 
         SystemRef {
-            ptr: out_ptr,
+            ptr,
             _marker: PhantomData,
         }
     }
