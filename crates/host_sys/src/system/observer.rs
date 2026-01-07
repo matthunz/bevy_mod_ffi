@@ -129,7 +129,6 @@ where
     ) {
         let observer_system = state.build_any_system(
             move |on: On<EntityEventWrapper<E>>, params: Vec<DynSystemParam>| {
-                /*
                 let _ = &library_handle;
 
                 let mut param_ptrs: Vec<*mut dyn_system_param> = Vec::new();
@@ -144,10 +143,8 @@ where
                 unsafe {
                     run_observer_fn(f_ptr as _, params_ptr.as_ptr(), len, event_ptr as _);
                 };
-                 */
             },
         );
-
         entity.observe(observer_system);
     }
 

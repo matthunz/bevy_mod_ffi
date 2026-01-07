@@ -1,5 +1,6 @@
-use crate::world::World;
-use bevy_mod_ffi_core::{query, query_iter};
+use crate::world::{FilteredEntityMut, World};
+use bevy_ecs::entity::Entity;
+use bevy_mod_ffi_core::{filtered_entity_mut, query, query_iter};
 use bevy_mod_ffi_guest_sys;
 use std::{marker::PhantomData, ptr};
 
@@ -43,6 +44,33 @@ impl<'w, 's, D: QueryData, F: QueryFilter> Query<'w, 's, D, F> {
         }
 
         QueryIter::new(iter_ptr, self.state)
+    }
+
+    pub fn get_mut(&mut self, entity: Entity) -> Option<D::Item<'_, '_>> {
+        let mut ptr: *mut filtered_entity_mut = ptr::null_mut();
+
+        let success = unsafe {
+            bevy_mod_ffi_guest_sys::query::bevy_query_get_mut(self.ptr, entity.to_bits(), &mut ptr)
+        };
+        if !success {
+            return None;
+        }
+
+        let mut entity_mut = unsafe { FilteredEntityMut::from_ptr(entity, ptr) };
+        Some(D::from_entity(&mut entity_mut, self.state))
+    }
+
+    pub fn get_entity_mut(&mut self, entity: Entity) -> Option<FilteredEntityMut<'_>> {
+        let mut ptr: *mut filtered_entity_mut = ptr::null_mut();
+
+        let success = unsafe {
+            bevy_mod_ffi_guest_sys::query::bevy_query_get_mut(self.ptr, entity.to_bits(), &mut ptr)
+        };
+        if !success {
+            return None;
+        }
+
+        Some(unsafe { FilteredEntityMut::from_ptr(entity, ptr) })
     }
 }
 

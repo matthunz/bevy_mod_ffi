@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy_mod_ffi::SharedRegistry;
-use bevy_mod_ffi_example_core::{Damage, Position, Velocity};
+use bevy_mod_ffi_example_core::{Damage, Health};
 
 fn main() {
     let mut registry = SharedRegistry::default();
@@ -11,8 +11,7 @@ fn main() {
         .init_resource::<AppTypeRegistry>()
         .insert_resource(registry);
 
-    app.world_mut().register_component::<Position>();
-    app.world_mut().register_component::<Velocity>();
+    app.world_mut().register_component::<Health>();
     app.update();
 
     let path = format!(
@@ -21,5 +20,6 @@ fn main() {
         std::env::consts::DLL_EXTENSION
     );
 
-    unsafe { bevy_mod_ffi::run(path, app.world_mut()).unwrap() };
+    let lib = unsafe { bevy_mod_ffi::run(path, app.world_mut()).unwrap() };
+    lib.unload(app.world_mut());
 }
