@@ -9,12 +9,13 @@ struct Zombie;
 fn main(world: &mut World) {
     world.register_component::<Zombie>();
 
-    world.spawn((Zombie, Health { current: 100.0 })).observe(
-        |event: OnEntity<Damage>, mut query: Query<&mut Health>| {
+    world
+        .spawn((Zombie, Health { current: 100. }))
+        .observe(|event: OnEntity<Damage>, mut query: Query<&mut Health>| {
             println!("Entity {:?} took {} damage!", event.entity, event.amount);
 
             let health = query.get_mut(event.entity).unwrap();
             health.current -= event.amount;
-        },
-    );
+        })
+        .trigger(Damage { amount: 10. });
 }

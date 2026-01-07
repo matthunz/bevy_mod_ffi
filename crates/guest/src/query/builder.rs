@@ -1,10 +1,10 @@
 use super::{QueryData, QueryFilter, QueryState};
 use crate::world::World;
 use bevy_ecs::component::ComponentId;
-use bevy_mod_ffi_core::{query_builder, query_state};
+use bevy_mod_ffi_core::query_builder;
 use bevy_mod_ffi_guest_sys;
 use bevy_reflect::TypePath;
-use std::{marker::PhantomData, mem, ptr};
+use std::{marker::PhantomData, mem};
 
 pub struct QueryBuilder<'w, D = (), F = ()> {
     pub(crate) ptr: *mut query_builder,
@@ -14,23 +14,15 @@ pub struct QueryBuilder<'w, D = (), F = ()> {
 
 impl<'w, D: QueryData, F: QueryFilter> QueryBuilder<'w, D, F> {
     pub fn new(world: &'w mut World) -> Self {
-        let mut builder_ptr: *mut query_builder = ptr::null_mut();
-
-        let success = unsafe {
-            bevy_mod_ffi_guest_sys::query::builder::bevy_query_builder_new(
-                world.ptr,
-                &mut builder_ptr,
-            )
-        };
-        if !success || builder_ptr.is_null() {
-            panic!("Failed to create host-side QueryBuilder");
-        }
+        let ptr =
+            unsafe { bevy_mod_ffi_guest_sys::query::builder::bevy_query_builder_new(world.ptr) };
 
         let mut me = Self {
-            ptr: builder_ptr,
+            ptr,
             world,
             _marker: PhantomData,
         };
+
         D::build_query(me.transmute());
         F::filter(me.transmute());
 
@@ -38,15 +30,12 @@ impl<'w, D: QueryData, F: QueryFilter> QueryBuilder<'w, D, F> {
     }
 
     pub fn with_ref_id(&mut self, component_id: ComponentId) -> &mut Self {
-        let success = unsafe {
+        unsafe {
             bevy_mod_ffi_guest_sys::query::builder::bevy_query_builder_with_ref(
                 self.ptr,
                 component_id.index(),
             )
         };
-        if !success {
-            panic!("Failed to add Ref access for: {}", component_id.index());
-        }
 
         self
     }
@@ -57,15 +46,12 @@ impl<'w, D: QueryData, F: QueryFilter> QueryBuilder<'w, D, F> {
     }
 
     pub fn with_mut_id(&mut self, component_id: ComponentId) -> &mut Self {
-        let success = unsafe {
+        unsafe {
             bevy_mod_ffi_guest_sys::query::builder::bevy_query_builder_with_mut(
                 self.ptr,
                 component_id.index(),
             )
         };
-        if !success {
-            panic!("Failed to add Mut access for: {}", component_id.index());
-        }
 
         self
     }
@@ -76,15 +62,12 @@ impl<'w, D: QueryData, F: QueryFilter> QueryBuilder<'w, D, F> {
     }
 
     pub fn with_id(&mut self, component_id: ComponentId) -> &mut Self {
-        let success = unsafe {
+        unsafe {
             bevy_mod_ffi_guest_sys::query::builder::bevy_query_builder_with(
                 self.ptr,
                 component_id.index(),
             )
         };
-        if !success {
-            panic!("Failed to add With filter for: {}", component_id.index());
-        }
 
         self
     }
@@ -95,15 +78,12 @@ impl<'w, D: QueryData, F: QueryFilter> QueryBuilder<'w, D, F> {
     }
 
     pub fn without_id(&mut self, component_id: ComponentId) -> &mut Self {
-        let success = unsafe {
+        unsafe {
             bevy_mod_ffi_guest_sys::query::builder::bevy_query_builder_without(
                 self.ptr,
                 component_id.index(),
             )
         };
-        if !success {
-            panic!("Failed to add Without filter for: {}", component_id.index());
-        }
 
         self
     }
@@ -113,23 +93,11 @@ impl<'w, D: QueryData, F: QueryFilter> QueryBuilder<'w, D, F> {
         self.without_id(component_id)
     }
 
-    pub fn build(mut self) -> QueryState<D, F> {
-        let mut state_ptr: *mut query_state = ptr::null_mut();
+    pub fn build(self) -> QueryState<D, F> {
+        let ptr =
+            unsafe { bevy_mod_ffi_guest_sys::query::builder::bevy_query_builder_build(self.ptr) };
 
-        let success = unsafe {
-            bevy_mod_ffi_guest_sys::query::builder::bevy_query_builder_build(
-                self.ptr,
-                &mut state_ptr,
-            )
-        };
-
-        self.ptr = ptr::null_mut();
-
-        if !success {
-            panic!("Failed to build QueryState from QueryBuilder");
-        }
-
-        QueryState::from_raw(state_ptr, D::build_state(self.world))
+        QueryState::from_raw(ptr, D::build_state(self.world))
     }
 
     pub fn transmute<F2, D2>(&mut self) -> &mut QueryBuilder<'w, D2, F2> {

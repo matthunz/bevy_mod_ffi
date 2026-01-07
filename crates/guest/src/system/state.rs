@@ -31,7 +31,7 @@ impl<P: SystemParam + 'static> SystemState<P> {
         let mut params_ptr: *mut *mut dyn_system_param = ptr::null_mut();
         let mut params_len: i32 = 0;
 
-        let success = unsafe {
+        unsafe {
             bevy_mod_ffi_guest_sys::system::state::bevy_system_state_get(
                 world.ptr,
                 self.ptr,
@@ -40,16 +40,7 @@ impl<P: SystemParam + 'static> SystemState<P> {
             )
         };
 
-        if !success {
-            panic!("Failed to get system state");
-        }
-
-        let params = if params_ptr.is_null() || params_len == 0 {
-            &[]
-        } else {
-            unsafe { slice::from_raw_parts(params_ptr, params_len as usize) }
-        };
-
+        let params = { unsafe { slice::from_raw_parts(params_ptr, params_len as usize) } };
         let mut cursor = ParamCursor::new(params);
         let out = unsafe { P::get_param(&mut self.state, &mut cursor) };
 
@@ -58,6 +49,7 @@ impl<P: SystemParam + 'static> SystemState<P> {
                 params_ptr as *mut dyn_system_param,
             )
         };
+
         out
     }
 

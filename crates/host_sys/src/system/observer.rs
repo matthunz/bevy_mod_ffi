@@ -12,6 +12,7 @@ use std::{any::Any, ffi::CStr, marker::PhantomData, slice, sync::Arc};
 
 #[derive(Clone)]
 pub struct LibraryHandle(pub Arc<dyn Any + Send + Sync>);
+
 #[derive(Event, Clone, Copy)]
 pub struct EntityEventWrapper<E> {
     pub entity: Entity,
@@ -150,8 +151,9 @@ where
 
     fn trigger_for_entity(&self, world: &mut World, event_data: &[u8], entity: Entity) {
         let inner = unsafe { *(event_data.as_ptr() as *const E) };
-        let wrapped = EntityEventWrapper { entity, inner };
-        world.trigger(wrapped);
+        world
+            .entity_mut(entity)
+            .trigger(|_| EntityEventWrapper { entity, inner });
     }
 }
 
