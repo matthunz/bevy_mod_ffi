@@ -56,7 +56,7 @@ pub trait Observable: Send + Sync + 'static {
 
     fn trigger(&self, world: &mut World, event_data: &[u8]);
 
-    fn trigger_for_entity(&self, world: &mut World, event_data: &[u8], entity: Entity);
+    fn trigger_for_entity(&self, entity: EntityWorldMut, event_data: &[u8]);
 }
 
 pub struct ObservableOf<E> {
@@ -149,11 +149,9 @@ where
         entity.observe(observer_system);
     }
 
-    fn trigger_for_entity(&self, world: &mut World, event_data: &[u8], entity: Entity) {
+    fn trigger_for_entity(&self, mut entity: EntityWorldMut, event_data: &[u8]) {
         let inner = unsafe { *(event_data.as_ptr() as *const E) };
-        world
-            .entity_mut(entity)
-            .trigger(|_| EntityEventWrapper { entity, inner });
+        entity.trigger(|entity| EntityEventWrapper { entity, inner });
     }
 }
 
