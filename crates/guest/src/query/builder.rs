@@ -139,8 +139,6 @@ impl<'w, D: QueryData, F: QueryFilter> QueryBuilder<'w, D, F> {
 
 impl<D, F> Drop for QueryBuilder<'_, D, F> {
     fn drop(&mut self) {
-        if !self.ptr.is_null() {
-            unsafe { bevy_mod_ffi_guest_sys::query::builder::bevy_query_builder_drop(self.ptr) }
-        }
+        unsafe { bevy_mod_ffi_guest_sys::query::builder::bevy_query_builder_drop(self.ptr) }
     }
 }

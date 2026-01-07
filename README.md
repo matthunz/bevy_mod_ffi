@@ -9,7 +9,7 @@
 #### Client
 ```rs
 use bevy_mod_ffi::prelude::*;
-use bevy_mod_ffi_example_core::{Damage, Position, Velocity};
+use bevy_mod_ffi_example_core::{Damage, Health};
 
 #[repr(C)]
 #[derive(SharedComponent, Clone, Copy, Debug, Zeroable, Pod, TypePath)]
@@ -19,26 +19,12 @@ struct Zombie;
 fn main(world: &mut World) {
     world.register_component::<Zombie>();
 
-    world
-        .spawn((
-            Zombie,
-            Position { x: 0.0, y: 0.0 },
-            Velocity { x: 1.0, y: 1.0 },
-        ))
-        .observe(|event: OnEntity<Damage>| {
+    world.spawn((Zombie, Health { current: 100.0 })).observe(
+        |event: OnEntity<Damage>, mut query: Query<&mut Health>| {
             println!("Entity {:?} took {} damage!", event.entity, event.amount);
-        })
-        .trigger(Damage { amount: 42.0 });
 
-    world.run_system(
-        (),
-        |mut query: Query<(Entity, &mut Position, &Velocity), With<Zombie>>| {
-            for (entity, pos, vel) in query.iter_mut() {
-                dbg!(entity, &pos, vel);
-
-                pos.x += vel.x;
-                pos.y += vel.y;
-            }
+            let health = query.get_mut(event.entity).unwrap();
+            health.current -= event.amount;
         },
     );
 }
@@ -48,7 +34,7 @@ fn main(world: &mut World) {
 ```rs
 use bevy::prelude::*;
 use bevy_mod_ffi::SharedRegistry;
-use bevy_mod_ffi_example_core::{Damage, Position, Velocity};
+use bevy_mod_ffi_example_core::{Damage, Health};
 
 fn main() {
     let mut registry = SharedRegistry::default();
@@ -59,8 +45,7 @@ fn main() {
         .init_resource::<AppTypeRegistry>()
         .insert_resource(registry);
 
-    app.world_mut().register_component::<Position>();
-    app.world_mut().register_component::<Velocity>();
+    app.world_mut().register_component::<Health>();
     app.update();
 
     let path = format!(
@@ -69,6 +54,7 @@ fn main() {
         std::env::consts::DLL_EXTENSION
     );
 
-    unsafe { bevy_mod_ffi::run(path, app.world_mut()).unwrap() };
+    let lib = unsafe { bevy_mod_ffi::run(path, app.world_mut()).unwrap() };
+    lib.unload(app.world_mut());
 }
 ```

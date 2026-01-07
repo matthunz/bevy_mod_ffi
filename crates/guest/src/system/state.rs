@@ -16,9 +16,9 @@ pub struct SystemState<P: SystemParam> {
 
 impl<P: SystemParam + 'static> SystemState<P> {
     pub fn new(world: &mut World) -> Self {
-        let mut builder = ParamBuilder::new(world);
+        let mut builder = ParamBuilder::new();
         let state = P::build(world, &mut builder);
-        let state_ptr = builder.build();
+        let state_ptr = builder.build(world);
 
         Self {
             ptr: state_ptr,
@@ -128,9 +128,7 @@ impl<P: SystemParam + 'static> SystemState<P> {
 
 impl<P: SystemParam> Drop for SystemState<P> {
     fn drop(&mut self) {
-        if !self.ptr.is_null() {
-            unsafe { bevy_mod_ffi_guest_sys::system::state::bevy_system_state_drop(self.ptr) };
-        }
+        unsafe { bevy_mod_ffi_guest_sys::system::state::bevy_system_state_drop(self.ptr) };
     }
 }
 

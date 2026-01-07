@@ -6,9 +6,8 @@ use crate::{
         SystemParam, SystemRef, SystemState,
     },
 };
-use bevy_mod_ffi_core::{
-    BundleComponent, ComponentHookFn, deferred_world, dyn_system_param, trigger, world,
-};
+use bevy_mod_ffi_core::{BundleComponent, ComponentHookFn, deferred_world, world};
+use bevy_mod_ffi_guest_sys::system::ObserverClosure;
 use bevy_reflect::TypePath;
 use std::{
     alloc::Layout,
@@ -273,15 +272,13 @@ impl World {
         <S::System as System>::Param: 'static,
     {
         let mut system = observer.into_system();
-        let mut builder = ParamBuilder::new(self);
+        let mut builder = ParamBuilder::new();
         let mut state = <<S::System as System>::Param as SystemParam>::build(self, &mut builder);
-        let state_ptr = builder.build();
+        let state_ptr = builder.build(self);
 
         let event_name = E::type_path();
         let event_name_cstring = CString::new(event_name).unwrap();
         let event_name_bytes = event_name_cstring.as_bytes_with_nul();
-
-        type ObserverClosure = Box<dyn FnMut(&[*mut dyn_system_param], *mut trigger)>;
 
         let observer_boxed: ObserverClosure = Box::new(move |params, event_ptr| {
             let mut param_cursor = ParamCursor::new(params);

@@ -1,19 +1,13 @@
 #![allow(clippy::missing_safety_doc)]
 
-pub use bevy_mod_ffi_host_sys as sys;
-
 use bevy::ecs::world::World;
 use libloading::{Library, Symbol};
 use std::{error::Error, ffi::OsStr, sync::Arc};
 
-pub mod query;
-
-pub mod system;
-
-pub mod world;
-
+pub use bevy_mod_ffi_host_sys as sys;
 use bevy_mod_ffi_host_sys::{CurrentLibraryHandle, LibraryHandle};
 pub use bevy_mod_ffi_host_sys::{LibraryId, SharedRegistry};
+
 #[derive(Clone)]
 pub struct LoadedLibrary {
     id: LibraryId,

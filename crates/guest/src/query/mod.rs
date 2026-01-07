@@ -1,5 +1,6 @@
-use crate::world::World;
-use bevy_mod_ffi_core::{query, query_iter};
+use crate::world::{FilteredEntityMut, World};
+use bevy_ecs::entity::Entity;
+use bevy_mod_ffi_core::{filtered_entity_mut, query, query_iter};
 use bevy_mod_ffi_guest_sys;
 use std::{marker::PhantomData, ptr};
 
@@ -20,15 +21,15 @@ pub use state::QueryState;
 
 pub struct Query<'w, 's, D: QueryData, F: QueryFilter = ()> {
     ptr: *mut query,
-    state: &'s mut QueryState<D, F>,
-    _marker: PhantomData<&'w mut World>,
+    state: &'s mut D::State,
+    _marker: PhantomData<(&'w mut World, &'s mut QueryState<D, F>)>,
 }
 
 impl<'w, 's, D: QueryData, F: QueryFilter> Query<'w, 's, D, F> {
-    pub(crate) fn new(ptr: *mut query, state: &'s mut QueryState<D, F>) -> Self {
+    pub(crate) fn new(ptr: *mut query, state: &'s mut D::State) -> Self {
         Self {
-            state,
             ptr,
+            state,
             _marker: PhantomData,
         }
     }
@@ -42,7 +43,34 @@ impl<'w, 's, D: QueryData, F: QueryFilter> Query<'w, 's, D, F> {
             panic!("Failed to create query iterator");
         }
 
-        QueryIter::new(iter_ptr, &mut self.state.state)
+        QueryIter::new(iter_ptr, self.state)
+    }
+
+    pub fn get_mut(&mut self, entity: Entity) -> Option<D::Item<'_, '_>> {
+        let mut ptr: *mut filtered_entity_mut = ptr::null_mut();
+
+        let success = unsafe {
+            bevy_mod_ffi_guest_sys::query::bevy_query_get_mut(self.ptr, entity.to_bits(), &mut ptr)
+        };
+        if !success {
+            return None;
+        }
+
+        let mut entity_mut = unsafe { FilteredEntityMut::from_ptr(entity, ptr) };
+        Some(D::from_entity(&mut entity_mut, self.state))
+    }
+
+    pub fn get_entity_mut(&mut self, entity: Entity) -> Option<FilteredEntityMut<'_>> {
+        let mut ptr: *mut filtered_entity_mut = ptr::null_mut();
+
+        let success = unsafe {
+            bevy_mod_ffi_guest_sys::query::bevy_query_get_mut(self.ptr, entity.to_bits(), &mut ptr)
+        };
+        if !success {
+            return None;
+        }
+
+        Some(unsafe { FilteredEntityMut::from_ptr(entity, ptr) })
     }
 }
 

@@ -34,14 +34,14 @@ pub unsafe extern "C" fn bevy_system_state_get(
 
     let params: Vec<DynSystemParam> = system_state.get_mut(bevy_world).0;
 
-    let mut pointers: Vec<*mut dyn_system_param> = Vec::new();
+    let mut param_ptrs: Vec<*mut dyn_system_param> = Vec::new();
     for param in params {
         let boxed = Box::new(param);
-        pointers.push(Box::into_raw(boxed) as *mut dyn_system_param);
+        param_ptrs.push(Box::into_raw(boxed) as *mut dyn_system_param);
     }
 
-    let len = pointers.len();
-    let pointers = pointers.into_boxed_slice();
+    let len = param_ptrs.len();
+    let pointers = param_ptrs.into_boxed_slice();
 
     unsafe {
         *out_params = Box::into_raw(pointers) as *mut *mut dyn_system_param;

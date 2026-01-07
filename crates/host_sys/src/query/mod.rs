@@ -6,7 +6,7 @@ use bevy::{
     },
     prelude::*,
 };
-use bevy_mod_ffi_core::{query, query_iter};
+use bevy_mod_ffi_core::{filtered_entity_mut, query, query_iter};
 
 type SharedQueryBuilder<'w> = QueryBuilder<'w, FilteredEntityMut<'static, 'static>>;
 type SharedQueryState = QueryState<FilteredEntityMut<'static, 'static>>;
@@ -26,6 +26,27 @@ unsafe extern "C" fn bevy_query_iter_mut(
 
     unsafe {
         *out_iter = Box::into_raw(Box::new(iter)) as *mut query_iter;
+    }
+
+    true
+}
+
+#[unsafe(no_mangle)]
+unsafe extern "C" fn bevy_query_get_mut(
+    query_ptr: *mut query,
+    entity_id: u64,
+    out_entity: *mut *mut filtered_entity_mut,
+) -> bool {
+    let query = unsafe { &mut *(query_ptr as *mut Query<FilteredEntityMut>) };
+    let entity = Entity::from_bits(entity_id);
+
+    let filtered_entity = match query.get_mut(entity) {
+        Ok(e) => e,
+        Err(_) => return false,
+    };
+
+    unsafe {
+        *out_entity = Box::into_raw(Box::new(filtered_entity)) as *mut filtered_entity_mut;
     }
 
     true

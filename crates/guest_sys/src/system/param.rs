@@ -1,10 +1,7 @@
 use bevy_mod_ffi_core::*;
 
 unsafe extern "C" {
-    pub fn bevy_param_builder_new(
-        world_ptr: *mut world,
-        out_builder: *mut *mut param_builder,
-    ) -> bool;
+    pub fn bevy_param_builder_new(out_builder: *mut *mut param_builder) -> bool;
 
     pub fn bevy_param_builder_add_query(
         builder: *mut param_builder,

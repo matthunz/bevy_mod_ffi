@@ -53,8 +53,6 @@ impl<'w, 's, D: QueryData, F: QueryFilter> Iterator for QueryIter<'w, 's, D, F> 
 
 impl<D: QueryData, F: QueryFilter> Drop for QueryIter<'_, '_, D, F> {
     fn drop(&mut self) {
-        if !self.iter_ptr.is_null() {
-            unsafe { bevy_mod_ffi_guest_sys::query::iter::bevy_query_iter_drop(self.iter_ptr) };
-        }
+        unsafe { bevy_mod_ffi_guest_sys::query::iter::bevy_query_iter_drop(self.iter_ptr) };
     }
 }
