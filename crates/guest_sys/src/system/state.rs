@@ -6,9 +6,9 @@ unsafe extern "C" {
         state: *mut system_state,
         out_params: *mut *mut *mut dyn_system_param,
         out_params_len: *mut i32,
-    ) -> bool;
+    );
 
-    pub fn bevy_system_state_apply(world: *mut world, state: *mut system_state) -> bool;
+    pub fn bevy_system_state_apply(world: *mut world, state: *mut system_state);
 
     pub fn bevy_system_state_build(
         state: *mut system_state,

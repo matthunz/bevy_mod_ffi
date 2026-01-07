@@ -409,7 +409,7 @@ pub unsafe extern "C" fn bevy_world_trigger_event_targets(
 
     let mut registry = world.remove_resource::<SharedRegistry>().unwrap();
     if let Some(event_ops) = registry.events.remove(event_name) {
-        event_ops.trigger_for_entity(world, event_data, entity);
+        event_ops.trigger_for_entity(world.entity_mut(entity), event_data);
         let key = event_ops.type_path();
         registry.events.insert(key, event_ops);
         world.insert_resource(registry);

@@ -1,5 +1,6 @@
 use bevy_mod_ffi_core::*;
 use std::slice;
+
 pub type ObserverClosure = Box<dyn FnMut(&[*mut dyn_system_param], *mut trigger)>;
 
 unsafe extern "C" {

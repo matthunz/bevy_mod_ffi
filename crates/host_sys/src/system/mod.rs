@@ -28,7 +28,7 @@ pub unsafe extern "C" fn bevy_system_state_get(
     state_ptr: *mut system_state,
     out_params: *mut *mut *mut dyn_system_param,
     out_params_len: *mut i32,
-) -> bool {
+) {
     let bevy_world = unsafe { &mut *(world_ptr as *mut World) };
     let system_state = unsafe { &mut *(state_ptr as *mut SharedSystemState) };
 
@@ -47,21 +47,17 @@ pub unsafe extern "C" fn bevy_system_state_get(
         *out_params = Box::into_raw(pointers) as *mut *mut dyn_system_param;
         *out_params_len = len as i32;
     }
-
-    true
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn bevy_system_state_apply(
     world_ptr: *mut world,
     state_ptr: *mut system_state,
-) -> bool {
+) {
     let world = unsafe { &mut *(world_ptr as *mut World) };
 
     let system_state = unsafe { &mut *(state_ptr as *mut SharedSystemState) };
     system_state.apply(world);
-
-    true
 }
 
 #[unsafe(no_mangle)]

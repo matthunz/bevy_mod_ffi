@@ -22,6 +22,8 @@ pub use param::SystemParam;
 mod state;
 pub use state::{SystemRef, SystemState};
 
+pub type SystemClosure = Box<dyn FnMut(&[*mut dyn_system_param], *const u8, *mut u8)>;
+
 #[allow(clippy::missing_safety_doc)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn bevy_guest_run_system(
@@ -31,8 +33,6 @@ pub unsafe extern "C" fn bevy_guest_run_system(
     input_ptr: *const u8,
     output_ptr: *mut u8,
 ) {
-    type SystemClosure = Box<dyn FnMut(&[*mut dyn_system_param], *const u8, *mut u8)>;
-
     let f = unsafe { &mut *(f_ptr as *mut SystemClosure) };
     let params_slice = unsafe { slice::from_raw_parts(params, params_len) };
     f(params_slice, input_ptr, output_ptr);

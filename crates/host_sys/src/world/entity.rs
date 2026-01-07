@@ -82,9 +82,12 @@ pub unsafe extern "C" fn bevy_entity_world_mut_observe(
         Err(_) => return false,
     };
 
-    let library_handle = world
+    let Some(library_handle) = world
         .get_resource::<CurrentLibraryHandle>()
-        .and_then(|h| h.0.clone());
+        .and_then(|h| h.0.clone())
+    else {
+        return false;
+    };
 
     let mut registry = match world.remove_resource::<SharedRegistry>() {
         Some(r) => r,
@@ -93,7 +96,7 @@ pub unsafe extern "C" fn bevy_entity_world_mut_observe(
 
     if let Some(event_ops) = registry.events.remove(event_name) {
         entity.reborrow_scope(|entity| {
-            event_ops.add_entity_observer_with_state(
+            event_ops.observe_entity(
                 entity,
                 state,
                 f_ptr as usize,
@@ -125,9 +128,8 @@ pub unsafe extern "C" fn bevy_entity_world_mut_trigger(
     event_data_ptr: *const u8,
     event_data_len: usize,
 ) -> bool {
-    let entity_world_mut = unsafe { &mut *(entity_ptr as *mut EntityWorldMut) };
-    let entity = entity_world_mut.id();
-    let world = entity_world_mut.world_mut();
+    let entity = unsafe { &mut *(entity_ptr as *mut EntityWorldMut) };
+    let world = entity.world_mut();
 
     let event_name_bytes = unsafe { slice::from_raw_parts(event_name_ptr, event_name_len) };
     let event_name = match CStr::from_bytes_with_nul(event_name_bytes) {
@@ -139,17 +141,20 @@ pub unsafe extern "C" fn bevy_entity_world_mut_trigger(
     };
 
     let event_data = unsafe { slice::from_raw_parts(event_data_ptr, event_data_len) };
-
     let mut registry = match world.remove_resource::<SharedRegistry>() {
         Some(r) => r,
         None => return false,
     };
 
     if let Some(event_ops) = registry.events.remove(event_name) {
-        event_ops.trigger_for_entity(world, event_data, entity);
+        entity.reborrow_scope(|entity| event_ops.trigger_for_entity(entity, event_data));
+
         let key = event_ops.type_path();
         registry.events.insert(key, event_ops);
+
+        let world = entity.world_mut();
         world.insert_resource(registry);
+
         true
     } else {
         world.insert_resource(registry);
